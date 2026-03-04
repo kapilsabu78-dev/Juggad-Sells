@@ -1,52 +1,64 @@
 <!DOCTYPE html>
+<html>
 <head>
 <meta charset="UTF-8">
 <title>Juggad Sells</title>
-<link rel="manifest" href="manifest.json">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
-<meta charset="UTF-8">
-<title>Juggad Sells</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  background: #f5f5f5;
+
+body{
+font-family:Arial;
+margin:0;
+background:#f2f2f2;
 }
-header {
-  background: #444;
-  color: white;
-  padding: 15px;
-  text-align: center;
-  font-size: 20px;
+
+header{
+background:#444;
+color:white;
+padding:15px;
+text-align:center;
+font-size:20px;
 }
-.grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  padding: 10px;
+
+.grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:10px;
+padding:10px;
 }
-.category {
-  background: white;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 15px;
-  text-align: center;
-  cursor: pointer;
+
+.category{
+background:white;
+border-radius:8px;
+padding:15px;
+text-align:center;
+cursor:pointer;
+border:1px solid #ddd;
 }
-.bill {
-  background: white;
-  margin: 10px;
-  padding: 10px;
-  border-radius: 8px;
+
+.bill{
+background:white;
+margin:10px;
+padding:10px;
+border-radius:8px;
 }
-button {
-  padding: 8px 12px;
-  margin: 5px;
+
+button{
+padding:8px 12px;
+margin:5px;
 }
+
+#items div{
+padding:6px;
+border-bottom:1px solid #eee;
+cursor:pointer;
+}
+
 </style>
 </head>
+
 <body>
 
 <header>Juggad Sells</header>
@@ -54,143 +66,241 @@ button {
 <div class="grid" id="categories"></div>
 
 <div class="bill">
-  <div id="items"></div>
-  <hr>
-  Discount: <input type="number" id="discount" value="0"><br>
-  <label><input type="checkbox" id="round"> Round Off</label>
-  <h3 id="total">Total: ₹0</h3>
-  <button onclick="saveBill()">Save Bill</button>
-  <button onclick="viewBills()">Previous Bills</button>
-  <button onclick="clearBill()">Clear</button>
+
+<div id="items"></div>
+
+<hr>
+
+Discount  
+<input type="number" id="discount" value="0">
+
+<br>
+
+<label>
+<input type="checkbox" id="round"> Round Off
+</label>
+
+<h3 id="total">Total: ₹0</h3>
+
+<button onclick="saveBill()">Save Bill</button>
+<button onclick="viewBills()">Previous Bills</button>
+<button onclick="clearBill()">Clear</button>
+
 </div>
 
+
+<!-- POPUP -->
+
+<div id="itemPopup" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
+
+<div style="background:white;padding:20px;border-radius:10px;width:250px;">
+
+<h3 id="popupCategory"></h3>
+
+Rate  
+<input type="number" id="rateInput">
+
+<br><br>
+
+Quantity  
+<input type="number" id="qtyInput" value="1">
+
+<br><br>
+
+<button onclick="confirmItem()">Add</button>
+<button onclick="closePopup()">Cancel</button>
+
+</div>
+</div>
+
+
 <script>
-let categories = ["Bag","Gifts","Toys","Events","Cosmetics","Jewellery","Stationary","Home Care"];
-let bill = [];
-let billNo = localStorage.getItem("billNo") || 1;
 
-function renderCategories() {
-  let grid = document.getElementById("categories");
-  grid.innerHTML = "";
-  categories.forEach(cat => {
-    let div = document.createElement("div");
-    div.className = "category";
-    div.innerHTML = "<strong>" + cat + "</strong>";
-    div.onclick = () => addItem(cat);
-    grid.appendChild(div);
-  });
+let categories=[
+"Bag",
+"Gifts",
+"Toys",
+"Events",
+"Cosmetics",
+"Jewellery",
+"Stationary",
+"Home Care"
+];
+
+let bill=[];
+let billNo=localStorage.getItem("billNo")||1;
+
+function renderCategories(){
+
+let grid=document.getElementById("categories");
+grid.innerHTML="";
+
+categories.forEach(cat=>{
+
+let div=document.createElement("div");
+div.className="category";
+div.innerText=cat;
+
+div.onclick=function(){
+openPopup(cat);
+};
+
+grid.appendChild(div);
+
+});
+
 }
 
-function addItem(cat) {
-  document.getElementById("popupCategory").innerText = cat;
-  document.getElementById("rateInput").value = "";
-  document.getElementById("qtyInput").value = 1;
-  document.getElementById("itemPopup").style.display = "flex";
-}
-  function confirmItem() {
-  let cat = document.getElementById("popupCategory").innerText;
-  let rate = Number(document.getElementById("rateInput").value);
-  let qty = Number(document.getElementById("qtyInput").value) || 1;
 
-  bill.push({cat, rate, qty});
-  document.getElementById("itemPopup").style.display = "none";
-  renderBill();
+function openPopup(cat){
+
+document.getElementById("popupCategory").innerText=cat;
+document.getElementById("rateInput").value="";
+document.getElementById("qtyInput").value=1;
+
+document.getElementById("itemPopup").style.display="flex";
+
 }
+
 
 function closePopup(){
-  document.getElementById("itemPopup").style.display="none";
+document.getElementById("itemPopup").style.display="none";
 }
-function renderBill() {
-  let itemsDiv = document.getElementById("items");
-  itemsDiv.innerHTML = "";
-  let total = 0;
-  bill.forEach((item, index) => {
-  let line = item.rate * item.qty;
-  total += line;
-  itemsDiv.innerHTML +=
-    "<div onclick='editItem(" + index + ")' style='padding:5px;border-bottom:1px solid #ddd;cursor:pointer'>" +
-    item.cat + " " + item.rate + " × " + item.qty + " = " + line +
-    "</div>";
+
+
+function confirmItem(){
+
+let cat=document.getElementById("popupCategory").innerText;
+let rate=Number(document.getElementById("rateInput").value);
+let qty=Number(document.getElementById("qtyInput").value)||1;
+
+bill.push({cat,rate,qty});
+
+closePopup();
+renderBill();
+
+}
+
+
+function renderBill(){
+
+let itemsDiv=document.getElementById("items");
+itemsDiv.innerHTML="";
+
+let total=0;
+
+bill.forEach((item,index)=>{
+
+let line=item.rate*item.qty;
+total+=line;
+
+let div=document.createElement("div");
+
+div.innerText=item.cat+" "+item.rate+" × "+item.qty+" = "+line;
+
+div.onclick=function(){
+editItem(index);
+};
+
+itemsDiv.appendChild(div);
+
 });
+
+let discount=Number(document.getElementById("discount").value);
+total-=discount;
+
+if(document.getElementById("round").checked){
+total=Math.round(total);
+}
+
+document.getElementById("total").innerText="Total: ₹"+total;
+
+}
+
+
+document.getElementById("discount").oninput=renderBill;
+document.getElementById("round").onchange=renderBill;
+
+
 function editItem(index){
-  let item = bill[index];
 
-  let newRate = prompt("Edit Rate", item.rate);
-  if(newRate === null) return;
+let item=bill[index];
 
-  let newQty = prompt("Edit Quantity", item.qty);
-  if(newQty === null) return;
+let newRate=prompt("Edit Rate",item.rate);
+if(newRate===null)return;
 
-  if(confirm("Delete this item?")){
-    bill.splice(index,1);
-  } else {
-    bill[index].rate = Number(newRate);
-    bill[index].qty = Number(newQty);
-  }
+let newQty=prompt("Edit Quantity",item.qty);
+if(newQty===null)return;
 
-  renderBill();
+if(confirm("Delete item?")){
+bill.splice(index,1);
 }
-  let discount = Number(document.getElementById("discount").value);
-  total -= discount;
-  if (document.getElementById("round").checked) {
-    total = Math.round(total);
-  }
-  document.getElementById("total").innerText = "Total: ₹" + total;
+else{
+bill[index].rate=Number(newRate);
+bill[index].qty=Number(newQty);
 }
 
-document.getElementById("discount").oninput = renderBill;
-document.getElementById("round").onchange = renderBill;
+renderBill();
 
-function saveBill() {
-  let bills = JSON.parse(localStorage.getItem("bills") || "[]");
-  bills.push({
-    billNo: billNo.toString().padStart(4,'0'),
-    date: new Date().toLocaleString(),
-    items: bill
-  });
-  localStorage.setItem("bills", JSON.stringify(bills));
-  billNo++;
-  localStorage.setItem("billNo", billNo);
-  clearBill();
-  alert("Bill Saved");
 }
 
-function viewBills() {
-  let bills = JSON.parse(localStorage.getItem("bills") || "[]");
-  let output = "";
-  bills.forEach(b => {
-    output += "Bill " + b.billNo + " - " + b.date + "\n";
-  });
-  alert(output || "No Bills");
+
+function saveBill(){
+
+let bills=JSON.parse(localStorage.getItem("bills")||"[]");
+
+bills.push({
+billNo:billNo.toString().padStart(4,'0'),
+date:new Date().toLocaleString(),
+items:bill
+});
+
+localStorage.setItem("bills",JSON.stringify(bills));
+
+billNo++;
+localStorage.setItem("billNo",billNo);
+
+clearBill();
+
+alert("Bill Saved");
+
 }
 
-function clearBill() {
-  bill = [];
-  document.getElementById("discount").value = 0;
-  document.getElementById("round").checked = false;
-  renderBill();
+
+function viewBills(){
+
+let bills=JSON.parse(localStorage.getItem("bills")||"[]");
+
+let output="";
+
+bills.forEach(b=>{
+output+="Bill "+b.billNo+" - "+b.date+"\n";
+});
+
+alert(output||"No Bills");
+
 }
+
+
+function clearBill(){
+
+bill=[];
+document.getElementById("discount").value=0;
+document.getElementById("round").checked=false;
+
+renderBill();
+
+}
+
 
 renderCategories();
-</script>
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
+
+
+if('serviceWorker' in navigator){
+navigator.serviceWorker.register('sw.js');
 }
+
 </script>
-  <div id="itemPopup" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
-  <div style="background:white; padding:20px; border-radius:10px; width:250px;">
-    <h3 id="popupCategory"></h3>
-    Rate<br>
-    <input type="number" id="rateInput"><br><br>
-    Quantity<br>
-    <input type="number" id="qtyInput" value="1"><br><br>
-    <button onclick="confirmItem()">Add</button>
-    <button onclick="closePopup()">Cancel</button>
-  </div>
-</div>
+
 </body>
-
 </html>
-
-
