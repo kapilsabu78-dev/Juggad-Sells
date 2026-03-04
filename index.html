@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <meta charset="UTF-8">
 <title>Juggad Sells</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -57,6 +58,7 @@ cursor:pointer;
 }
 
 </style>
+
 </head>
 
 <body>
@@ -89,7 +91,7 @@ Discount
 </div>
 
 
-<!-- POPUP -->
+<!-- ITEM POPUP -->
 
 <div id="itemPopup" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
 
@@ -98,12 +100,12 @@ Discount
 <h3 id="popupCategory"></h3>
 
 Rate  
-<input type="number" id="rateInput">
+<input type="number" id="rateInput" inputmode="numeric">
 
 <br><br>
 
 Quantity  
-<input type="number" id="qtyInput" value="1">
+<input type="number" id="qtyInput" value="1" inputmode="numeric">
 
 <br><br>
 
@@ -129,6 +131,7 @@ let categories=[
 
 let bill=[];
 let billNo=localStorage.getItem("billNo")||1;
+
 
 function renderCategories(){
 
@@ -159,6 +162,10 @@ document.getElementById("rateInput").value="";
 document.getElementById("qtyInput").value=1;
 
 document.getElementById("itemPopup").style.display="flex";
+
+setTimeout(function(){
+document.getElementById("rateInput").focus();
+},100);
 
 }
 
