@@ -104,11 +104,32 @@ function renderBill() {
   let itemsDiv = document.getElementById("items");
   itemsDiv.innerHTML = "";
   let total = 0;
-  bill.forEach(item => {
-    let line = item.rate * item.qty;
-    total += line;
-    itemsDiv.innerHTML += item.cat + " " + item.rate + " × " + item.qty + " = " + line + "<br>";
-  });
+  bill.forEach((item, index) => {
+  let line = item.rate * item.qty;
+  total += line;
+  itemsDiv.innerHTML +=
+    "<div onclick='editItem(" + index + ")' style='padding:5px;border-bottom:1px solid #ddd;cursor:pointer'>" +
+    item.cat + " " + item.rate + " × " + item.qty + " = " + line +
+    "</div>";
+});
+function editItem(index){
+  let item = bill[index];
+
+  let newRate = prompt("Edit Rate", item.rate);
+  if(newRate === null) return;
+
+  let newQty = prompt("Edit Quantity", item.qty);
+  if(newQty === null) return;
+
+  if(confirm("Delete this item?")){
+    bill.splice(index,1);
+  } else {
+    bill[index].rate = Number(newRate);
+    bill[index].qty = Number(newQty);
+  }
+
+  renderBill();
+}
   let discount = Number(document.getElementById("discount").value);
   total -= discount;
   if (document.getElementById("round").checked) {
