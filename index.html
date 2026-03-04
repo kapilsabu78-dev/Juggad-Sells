@@ -82,13 +82,24 @@ function renderCategories() {
 }
 
 function addItem(cat) {
-  let rate = prompt("Enter Rate");
-  if (!rate) return;
-  let qty = prompt("Enter Quantity (default 1)") || 1;
-  bill.push({cat, rate: Number(rate), qty: Number(qty)});
+  document.getElementById("popupCategory").innerText = cat;
+  document.getElementById("rateInput").value = "";
+  document.getElementById("qtyInput").value = 1;
+  document.getElementById("itemPopup").style.display = "flex";
+}
+  function confirmItem() {
+  let cat = document.getElementById("popupCategory").innerText;
+  let rate = Number(document.getElementById("rateInput").value);
+  let qty = Number(document.getElementById("qtyInput").value) || 1;
+
+  bill.push({cat, rate, qty});
+  document.getElementById("itemPopup").style.display = "none";
   renderBill();
 }
 
+function closePopup(){
+  document.getElementById("itemPopup").style.display="none";
+}
 function renderBill() {
   let itemsDiv = document.getElementById("items");
   itemsDiv.innerHTML = "";
@@ -146,7 +157,19 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js');
 }
 </script>
+  <div id="itemPopup" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+  <div style="background:white; padding:20px; border-radius:10px; width:250px;">
+    <h3 id="popupCategory"></h3>
+    Rate<br>
+    <input type="number" id="rateInput"><br><br>
+    Quantity<br>
+    <input type="number" id="qtyInput" value="1"><br><br>
+    <button onclick="confirmItem()">Add</button>
+    <button onclick="closePopup()">Cancel</button>
+  </div>
+</div>
 </body>
 
 </html>
+
 
