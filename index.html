@@ -100,7 +100,7 @@ Discount
 <h3 id="popupCategory"></h3>
 
 Rate  
-<input type="number" id="rateInput" inputmode="numeric">
+<input type="tel" id="rateInput" inputmode="numeric">
 
 <br><br>
 
@@ -154,18 +154,17 @@ grid.appendChild(div);
 
 }
 
-
 function openPopup(cat){
 
-document.getElementById("popupCategory").innerText=cat;
-document.getElementById("rateInput").value="";
-document.getElementById("qtyInput").value=1;
+  document.getElementById("popupCategory").innerText = cat;
+  document.getElementById("rateInput").value = "";
+  document.getElementById("qtyInput").value = 1;
 
-document.getElementById("itemPopup").style.display="flex";
+  document.getElementById("itemPopup").style.display = "flex";
 
-setTimeout(function(){
-document.getElementById("rateInput").focus();
-},100);
+  const rateField = document.getElementById("rateInput");
+  rateField.focus();
+  rateField.click();   // helps Android trigger keypad
 
 }
 
@@ -228,29 +227,22 @@ document.getElementById("total").innerText="Total: ₹"+total;
 document.getElementById("discount").oninput=renderBill;
 document.getElementById("round").onchange=renderBill;
 
-
 function editItem(index){
 
-let item=bill[index];
+  let item = bill[index];
 
-let newRate=prompt("Edit Rate",item.rate);
-if(newRate===null)return;
+  let newRate = prompt("Edit Rate", item.rate);
+  if(newRate === null) return;
 
-let newQty=prompt("Edit Quantity",item.qty);
-if(newQty===null)return;
+  let newQty = prompt("Edit Quantity", item.qty);
+  if(newQty === null) return;
 
-if(confirm("Delete item?")){
-bill.splice(index,1);
-}
-else{
-bill[index].rate=Number(newRate);
-bill[index].qty=Number(newQty);
-}
+  bill[index].rate = Number(newRate);
+  bill[index].qty = Number(newQty);
 
-renderBill();
+  renderBill();
 
 }
-
 
 function saveBill(){
 
