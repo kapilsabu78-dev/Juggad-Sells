@@ -18,9 +18,16 @@ background:#f2f2f2;
 header{
 background:#444;
 color:white;
-padding:14px;
+padding:12px;
 text-align:center;
-font-size:20px;
+}
+
+header h2{
+margin:2px;
+}
+
+header small{
+font-size:12px;
 }
 
 .grid{
@@ -42,7 +49,7 @@ font-size:18px;
 
 .category span{
 display:block;
-font-size:24px;
+font-size:26px;
 }
 
 .bill{
@@ -59,8 +66,16 @@ cursor:pointer;
 }
 
 button{
-padding:8px 12px;
-margin:5px;
+padding:8px 10px;
+margin:4px;
+}
+
+.dashboard{
+background:white;
+margin:10px;
+padding:10px;
+border-radius:8px;
+font-size:14px;
 }
 
 </style>
@@ -69,7 +84,14 @@ margin:5px;
 
 <body>
 
-<header>Juggad Sells</header>
+<header>
+<h2>HIRA Gifts & General</h2>
+<small>Main Road, Ambad | Mob: 7020773407</small>
+</header>
+
+<div class="dashboard" id="dashboard">
+Today's Sales: ₹0 | Bills: 0
+</div>
 
 <div class="grid" id="categories"></div>
 
@@ -93,17 +115,15 @@ Discount
 <button onclick="saveBill()">Save Bill</button>
 <button onclick="printBill()">Print</button>
 <button onclick="shareWhatsApp()">WhatsApp</button>
-<button onclick="exportExcel()">Export Excel</button>
-<button onclick="viewBills()">Previous Bills</button>
+<button onclick="exportExcel()">Excel</button>
+<button onclick="viewBills()">Bills</button>
 <button onclick="clearBill()">Clear</button>
 
 </div>
 
-<!-- POPUP -->
-
 <div id="itemPopup" onclick="outsideTap(event)" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
 
-<div onclick="event.stopPropagation()" style="background:white;padding:20px;border-radius:10px;width:260px;">
+<div onclick="event.stopPropagation()" style="background:white;padding:20px;border-radius:10px;width:250px;">
 
 <h3 id="popupCategory"></h3>
 
@@ -112,7 +132,7 @@ Rate
 
 <br><br>
 
-Quantity  
+Qty  
 <input type="tel" id="qtyInput" value="1">
 
 <br><br>
@@ -137,40 +157,6 @@ let categories=[
 
 let bill=[];
 let billNo=localStorage.getItem("billNo")||1;
-
-
-function shareWhatsApp(){
-
-let phone = prompt("Enter Customer WhatsApp Number");
-
-if(!phone) return;
-
-phone = phone.replace(/\D/g,"");   // remove spaces or symbols
-
-let totalText=document.getElementById("total").innerText;
-
-let billText="";
-
-bill.forEach(item=>{
-let line=item.rate*item.qty;
-billText+=item.cat+" "+item.rate+" x "+item.qty+" = "+line+"\n";
-});
-
-let message =
-"HIRA Gifts & General\n"+
-"Main Road, Ambad\n"+
-"Mob: 7020773407\n\n"+
-"Bill No: "+billNo+"\n"+
-"Date: "+new Date().toLocaleDateString()+"\n\n"+
-billText+
-"\n"+totalText;
-
-let url="https://wa.me/91"+phone+"?text="+encodeURIComponent(message);
-
-window.open(url,"_blank");
-
-}
-
 
 function renderCategories(){
 
@@ -262,7 +248,7 @@ total+=line;
 
 let div=document.createElement("div");
 
-div.innerText=item.cat+"  "+item.rate+" × "+item.qty+" = "+line;
+div.innerText=item.cat+" "+item.rate+" × "+item.qty+" = "+line;
 
 div.onclick=function(){
 editItem(index);
@@ -318,35 +304,71 @@ localStorage.setItem("bills",JSON.stringify(bills));
 billNo++;
 localStorage.setItem("billNo",billNo);
 
+updateDashboard();
+
 alert("Bill Saved");
 
 }
 
-function viewBills(){
+function updateDashboard(){
 
 let bills=JSON.parse(localStorage.getItem("bills")||"[]");
 
-if(bills.length===0){
-alert("No Bills Saved");
-return;
-}
+let today=new Date().toDateString();
 
-let text="";
+let sales=0;
+let count=0;
 
 bills.forEach(b=>{
 
-text+="Bill "+b.billNo+" "+b.date+"\n";
+let d=new Date(b.date).toDateString();
+
+if(d===today){
+
+count++;
 
 b.items.forEach(i=>{
-let amt=i.rate*i.qty;
-text+=i.cat+" "+i.rate+" x "+i.qty+" = "+amt+"\n";
+sales+=i.rate*i.qty;
 });
 
-text+="\n";
+}
 
 });
 
-alert(text);
+document.getElementById("dashboard").innerText=
+"Today's Sales: ₹"+sales+" | Bills: "+count;
+
+}
+
+function shareWhatsApp(){
+
+let phone=prompt("Customer WhatsApp Number");
+
+if(!phone) return;
+
+phone=phone.replace(/\D/g,"");
+
+let totalText=document.getElementById("total").innerText;
+
+let billText="";
+
+bill.forEach(item=>{
+let line=item.rate*item.qty;
+billText+=item.cat+" "+item.rate+" x "+item.qty+" = "+line+"\n";
+});
+
+let message=
+"HIRA Gifts & General\n"+
+"Main Road, Ambad\n"+
+"Mob: 7020773407\n\n"+
+"Bill No: "+billNo+"\n"+
+"Date: "+new Date().toLocaleDateString()+"\n\n"+
+billText+
+"\n"+totalText;
+
+let url="https://wa.me/91"+phone+"?text="+encodeURIComponent(message);
+
+window.open(url,"_blank");
 
 }
 
@@ -403,6 +425,34 @@ a.click();
 
 }
 
+function viewBills(){
+
+let bills=JSON.parse(localStorage.getItem("bills")||"[]");
+
+if(bills.length===0){
+alert("No Bills Saved");
+return;
+}
+
+let text="";
+
+bills.forEach(b=>{
+
+text+="Bill "+b.billNo+" "+b.date+"\n";
+
+b.items.forEach(i=>{
+let amt=i.rate*i.qty;
+text+=i.cat+" "+i.rate+" x "+i.qty+" = "+amt+"\n";
+});
+
+text+="\n";
+
+});
+
+alert(text);
+
+}
+
 function clearBill(){
 
 bill=[];
@@ -414,6 +464,7 @@ renderBill();
 }
 
 renderCategories();
+updateDashboard();
 
 if('serviceWorker' in navigator){
 navigator.serviceWorker.register('sw.js');
