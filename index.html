@@ -18,7 +18,7 @@ background:#f2f2f2;
 header{
 background:#444;
 color:white;
-padding:15px;
+padding:14px;
 text-align:center;
 font-size:20px;
 }
@@ -37,6 +37,12 @@ padding:15px;
 text-align:center;
 cursor:pointer;
 border:1px solid #ddd;
+font-size:18px;
+}
+
+.category span{
+display:block;
+font-size:24px;
 }
 
 .bill{
@@ -46,15 +52,15 @@ padding:10px;
 border-radius:8px;
 }
 
+#items div{
+padding:8px;
+border-bottom:1px solid #eee;
+cursor:pointer;
+}
+
 button{
 padding:8px 12px;
 margin:5px;
-}
-
-#items div{
-padding:6px;
-border-bottom:1px solid #eee;
-cursor:pointer;
 }
 
 </style>
@@ -85,60 +91,52 @@ Discount
 <h3 id="total">Total: ₹0</h3>
 
 <button onclick="saveBill()">Save Bill</button>
+<button onclick="printBill()">Print</button>
+<button onclick="exportExcel()">Export Excel</button>
 <button onclick="viewBills()">Previous Bills</button>
 <button onclick="clearBill()">Clear</button>
 
 </div>
 
-
-<!-- ITEM POPUP -->
+<!-- POPUP -->
 
 <div id="itemPopup" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
 
-<div style="background:white;padding:20px;border-radius:10px;width:250px;">
+<div style="background:white;padding:20px;border-radius:10px;width:260px;">
 
 <h3 id="popupCategory"></h3>
 
-Rate
-<input type="tel" id="rateInput" inputmode="numeric" onkeydown="rateEnter(event)">
+Rate  
+<input type="tel" id="rateInput">
 
 <br><br>
 
 Quantity  
-<input type="number" id="qtyInput" value="1" inputmode="numeric">
+<input type="tel" id="qtyInput" value="1">
 
 <br><br>
 
 <button onclick="confirmItem()">Add</button>
-<button onclick="closePopup()">Cancel</button>
+<button onclick="closePopup()">Close</button>
 
 </div>
 </div>
-
 
 <script>
 
-function rateEnter(e){
-  if(e.key === "Enter"){
-    confirmItem();
-  }
-}
-
-
 let categories=[
-"Bag",
-"Gifts",
-"Toys",
-"Events",
-"Cosmetics",
-"Jewellery",
-"Stationary",
-"Home Care"
+{name:"Bag",icon:"👜"},
+{name:"Gifts",icon:"🎁"},
+{name:"Toys",icon:"🧸"},
+{name:"Events",icon:"🎉"},
+{name:"Cosmetics",icon:"💄"},
+{name:"Jewellery",icon:"💍"},
+{name:"Stationary",icon:"✏️"},
+{name:"Home Care",icon:"🧴"}
 ];
 
 let bill=[];
 let billNo=localStorage.getItem("billNo")||1;
-
 
 function renderCategories(){
 
@@ -149,10 +147,11 @@ categories.forEach(cat=>{
 
 let div=document.createElement("div");
 div.className="category";
-div.innerText=cat;
+
+div.innerHTML="<span>"+cat.icon+"</span>"+cat.name;
 
 div.onclick=function(){
-openPopup(cat);
+openPopup(cat.name);
 };
 
 grid.appendChild(div);
@@ -163,40 +162,38 @@ grid.appendChild(div);
 
 function openPopup(cat){
 
-  document.getElementById("popupCategory").innerText = cat;
-  document.getElementById("rateInput").value = "";
-  document.getElementById("qtyInput").value = 1;
+document.getElementById("popupCategory").innerText=cat;
 
-  document.getElementById("itemPopup").style.display = "flex";
+document.getElementById("rateInput").value="";
+document.getElementById("qtyInput").value=1;
 
-  const rateField = document.getElementById("rateInput");
-  rateField.focus();
-  rateField.click();   // helps Android trigger keypad
+document.getElementById("itemPopup").style.display="flex";
+
+document.getElementById("rateInput").focus();
 
 }
-
 
 function closePopup(){
 document.getElementById("itemPopup").style.display="none";
 }
 
-
 function confirmItem(){
 
-  let cat=document.getElementById("popupCategory").innerText;
-  let rate=Number(document.getElementById("rateInput").value);
-  let qty=Number(document.getElementById("qtyInput").value)||1;
+let cat=document.getElementById("popupCategory").innerText;
 
-  bill.push({cat,rate,qty});
+let rate=Number(document.getElementById("rateInput").value);
+let qty=Number(document.getElementById("qtyInput").value)||1;
 
-  renderBill();
+bill.push({cat,rate,qty});
 
-  document.getElementById("rateInput").value="";
-  document.getElementById("qtyInput").value=1;
+renderBill();
 
-  document.getElementById("rateInput").focus();
+document.getElementById("rateInput").value="";
+document.getElementById("qtyInput").value=1;
+
+document.getElementById("rateInput").focus();
+
 }
-
 
 function renderBill(){
 
@@ -212,7 +209,7 @@ total+=line;
 
 let div=document.createElement("div");
 
-div.innerText=item.cat+" "+item.rate+" × "+item.qty+" = "+line;
+div.innerText=item.cat+"  "+item.rate+" × "+item.qty+" = "+line;
 
 div.onclick=function(){
 editItem(index);
@@ -233,24 +230,23 @@ document.getElementById("total").innerText="Total: ₹"+total;
 
 }
 
-
 document.getElementById("discount").oninput=renderBill;
 document.getElementById("round").onchange=renderBill;
 
 function editItem(index){
 
-  let item = bill[index];
+let item=bill[index];
 
-  let newRate = prompt("Edit Rate", item.rate);
-  if(newRate === null) return;
+let newRate=prompt("Edit Rate",item.rate);
+if(newRate===null)return;
 
-  let newQty = prompt("Edit Quantity", item.qty);
-  if(newQty === null) return;
+let newQty=prompt("Edit Quantity",item.qty);
+if(newQty===null)return;
 
-  bill[index].rate = Number(newRate);
-  bill[index].qty = Number(newQty);
+bill[index].rate=Number(newRate);
+bill[index].qty=Number(newQty);
 
-  renderBill();
+renderBill();
 
 }
 
@@ -269,12 +265,62 @@ localStorage.setItem("bills",JSON.stringify(bills));
 billNo++;
 localStorage.setItem("billNo",billNo);
 
-clearBill();
-
 alert("Bill Saved");
 
 }
 
+function printBill(){
+
+let totalText=document.getElementById("total").innerText;
+
+let billText="";
+
+bill.forEach(item=>{
+let line=item.rate*item.qty;
+billText+=item.cat+" "+item.rate+" x "+item.qty+" = "+line+"<br>";
+});
+
+let win=window.open("","","width=300");
+
+win.document.write(`
+<h3>HIRA Gifts & General</h3>
+Main Road, Ambad<br>
+Mob: 7020773407<br><br>
+
+Bill No: ${billNo}<br>
+Date: ${new Date().toLocaleDateString()}<br><br>
+
+${billText}
+
+<hr>
+${totalText}
+`);
+
+win.print();
+
+}
+
+function exportExcel(){
+
+let bills=JSON.parse(localStorage.getItem("bills")||"[]");
+
+let csv="BillNo,Date,Category,Rate,Qty,Amount\n";
+
+bills.forEach(b=>{
+b.items.forEach(i=>{
+let amt=i.rate*i.qty;
+csv+=b.billNo+","+b.date+","+i.cat+","+i.rate+","+i.qty+","+amt+"\n";
+});
+});
+
+let blob=new Blob([csv],{type:"text/csv"});
+
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="juggad_sales.csv";
+a.click();
+
+}
 
 function viewBills(){
 
@@ -290,7 +336,6 @@ alert(output||"No Bills");
 
 }
 
-
 function clearBill(){
 
 bill=[];
@@ -301,9 +346,7 @@ renderBill();
 
 }
 
-
 renderCategories();
-
 
 if('serviceWorker' in navigator){
 navigator.serviceWorker.register('sw.js');
