@@ -99,8 +99,8 @@ Discount
 
 <h3 id="popupCategory"></h3>
 
-Rate  
-<input type="tel" id="rateInput" inputmode="numeric">
+Rate
+<input type="tel" id="rateInput" inputmode="numeric" onkeydown="rateEnter(event)">
 
 <br><br>
 
@@ -117,6 +117,13 @@ Quantity
 
 
 <script>
+
+function rateEnter(e){
+  if(e.key === "Enter"){
+    confirmItem();
+  }
+}
+
 
 let categories=[
 "Bag",
@@ -176,15 +183,18 @@ document.getElementById("itemPopup").style.display="none";
 
 function confirmItem(){
 
-let cat=document.getElementById("popupCategory").innerText;
-let rate=Number(document.getElementById("rateInput").value);
-let qty=Number(document.getElementById("qtyInput").value)||1;
+  let cat=document.getElementById("popupCategory").innerText;
+  let rate=Number(document.getElementById("rateInput").value);
+  let qty=Number(document.getElementById("qtyInput").value)||1;
 
-bill.push({cat,rate,qty});
+  bill.push({cat,rate,qty});
 
-closePopup();
-renderBill();
+  renderBill();
 
+  document.getElementById("rateInput").value="";
+  document.getElementById("qtyInput").value=1;
+
+  document.getElementById("rateInput").focus();
 }
 
 
