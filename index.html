@@ -63,6 +63,7 @@ padding:8px 12px;
 margin:5px;
 }
 
+
 </style>
 
 </head>
@@ -95,6 +96,7 @@ Discount
 <button onclick="exportExcel()">Export Excel</button>
 <button onclick="viewBills()">Previous Bills</button>
 <button onclick="clearBill()">Clear</button>
+<button onclick="shareWhatsApp()">WhatsApp Bill</button>
 
 </div>
 
@@ -123,6 +125,34 @@ Quantity
 </div>
 
 <script>
+
+function shareWhatsApp(){
+
+let totalText=document.getElementById("total").innerText;
+
+let billText="";
+
+bill.forEach(item=>{
+let line=item.rate*item.qty;
+billText+=item.cat+"  "+item.rate+" x "+item.qty+" = "+line+"\n";
+});
+
+let message =
+"HIRA Gifts & General\n"+
+"Main Road, Ambad\n"+
+"Mob: 7020773407\n\n"+
+"Bill No: "+billNo+"\n"+
+"Date: "+new Date().toLocaleDateString()+"\n\n"+
+billText+
+"\n"+totalText;
+
+let url="https://wa.me/?text="+encodeURIComponent(message);
+
+window.open(url,"_blank");
+
+}
+
+
 
 let categories=[
 {name:"Bag",icon:"👜"},
