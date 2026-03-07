@@ -22,14 +22,6 @@ padding:12px;
 text-align:center;
 }
 
-header h2{
-margin:2px;
-}
-
-header small{
-font-size:12px;
-}
-
 .grid{
 display:grid;
 grid-template-columns:repeat(3,1fr);
@@ -59,6 +51,14 @@ padding:10px;
 border-radius:8px;
 }
 
+.dashboard{
+background:white;
+margin:10px;
+padding:10px;
+border-radius:8px;
+font-size:14px;
+}
+
 #items div{
 padding:8px;
 border-bottom:1px solid #eee;
@@ -70,16 +70,7 @@ padding:8px 10px;
 margin:4px;
 }
 
-.dashboard{
-background:white;
-margin:10px;
-padding:10px;
-border-radius:8px;
-font-size:14px;
-}
-
 </style>
-
 </head>
 
 <body>
@@ -90,7 +81,7 @@ font-size:14px;
 </header>
 
 <div class="dashboard" id="dashboard">
-Today's Sales: ₹0 | Bills: 0
+Today's Sales ₹0 | Bills 0
 </div>
 
 <div class="grid" id="categories"></div>
@@ -112,14 +103,16 @@ Discount
 
 <h3 id="total">Total: ₹0</h3>
 
-<button onclick="saveBill()">Save Bill</button>
+<button onclick="manualSave()">Save</button>
 <button onclick="printBill()">Print</button>
-<button onclick="shareWhatsApp()">WhatsApp</button>
+<button onclick="openPhonePopup()">WhatsApp</button>
 <button onclick="exportExcel()">Excel</button>
-<button onclick="viewBills()">Bills</button>
+<button onclick="viewTodayBills()">Bills</button>
 <button onclick="clearBill()">Clear</button>
 
 </div>
+
+<!-- ITEM POPUP -->
 
 <div id="itemPopup" onclick="outsideTap(event)" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
 
@@ -135,9 +128,22 @@ Rate
 Qty  
 <input type="tel" id="qtyInput" value="1">
 
+</div>
+</div>
+
+<!-- WHATSAPP PHONE POPUP -->
+
+<div id="phonePopup" onclick="closePhonePopup(event)" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
+
+<div onclick="event.stopPropagation()" style="background:white;padding:20px;border-radius:10px;width:250px;">
+
+<h3>Customer WhatsApp</h3>
+
+<input type="tel" id="phoneInput" placeholder="Enter number">
+
 <br><br>
 
-<button onclick="confirmItem()">Add</button>
+<button onclick="sendWhatsApp()">Send Bill</button>
 
 </div>
 </div>
@@ -152,10 +158,12 @@ let categories=[
 {name:"Cosmetics",icon:"💄"},
 {name:"Jewellery",icon:"💍"},
 {name:"Stationary",icon:"✏️"},
-{name:"Home Care",icon:"🧴"}
+{name:"Home Care",icon:"🧴"},
+{name:"Misc",icon:"🧾"}
 ];
 
 let bill=[];
+let billSaved=false;
 let billNo=localStorage.getItem("billNo")||1;
 
 function renderCategories(){
@@ -177,7 +185,6 @@ openPopup(cat.name);
 grid.appendChild(div);
 
 });
-
 }
 
 function openPopup(cat){
@@ -190,26 +197,6 @@ document.getElementById("qtyInput").value=1;
 document.getElementById("itemPopup").style.display="flex";
 
 document.getElementById("rateInput").focus();
-
-}
-
-function confirmItem(){
-
-let cat=document.getElementById("popupCategory").innerText;
-
-let rate=Number(document.getElementById("rateInput").value);
-let qty=Number(document.getElementById("qtyInput").value)||1;
-
-if(rate>0){
-
-bill.push({cat,rate,qty});
-
-renderBill();
-
-}
-
-document.getElementById("rateInput").value="";
-document.getElementById("qtyInput").value=1;
 
 }
 
@@ -227,7 +214,6 @@ let cat=document.getElementById("popupCategory").innerText;
 bill.push({cat,rate,qty});
 
 renderBill();
-
 }
 
 document.getElementById("itemPopup").style.display="none";
@@ -251,7 +237,7 @@ let div=document.createElement("div");
 div.innerText=item.cat+" "+item.rate+" × "+item.qty+" = "+line;
 
 div.onclick=function(){
-editItem(index);
+editOptions(index);
 };
 
 itemsDiv.appendChild(div);
@@ -259,31 +245,39 @@ itemsDiv.appendChild(div);
 });
 
 let discount=Number(document.getElementById("discount").value);
-total-=discount;
+
+let finalTotal=total-discount;
 
 if(document.getElementById("round").checked){
-total=Math.round(total);
+finalTotal=Math.round(finalTotal);
 }
 
-document.getElementById("total").innerText="Total: ₹"+total;
+document.getElementById("total").innerText="Total: ₹"+finalTotal;
 
 }
 
-document.getElementById("discount").oninput=renderBill;
-document.getElementById("round").onchange=renderBill;
+function editOptions(index){
 
-function editItem(index){
+let action=prompt("Type:\n1 Edit\n2 Delete");
+
+if(action==="1"){
 
 let item=bill[index];
 
-let newRate=prompt("Edit Rate",item.rate);
+let newRate=prompt("Rate",item.rate);
 if(newRate===null)return;
 
-let newQty=prompt("Edit Quantity",item.qty);
+let newQty=prompt("Qty",item.qty);
 if(newQty===null)return;
 
 bill[index].rate=Number(newRate);
 bill[index].qty=Number(newQty);
+
+}
+
+if(action==="2"){
+bill.splice(index,1);
+}
 
 renderBill();
 
@@ -291,12 +285,15 @@ renderBill();
 
 function saveBill(){
 
+if(billSaved) return;
+
 let bills=JSON.parse(localStorage.getItem("bills")||"[]");
 
 bills.push({
 billNo:billNo.toString().padStart(4,'0'),
-date:new Date().toLocaleString(),
-items:bill
+date:new Date().toISOString(),
+items:bill,
+discount:Number(document.getElementById("discount").value)
 });
 
 localStorage.setItem("bills",JSON.stringify(bills));
@@ -304,8 +301,15 @@ localStorage.setItem("bills",JSON.stringify(bills));
 billNo++;
 localStorage.setItem("billNo",billNo);
 
+billSaved=true;
+
 updateDashboard();
 
+}
+
+function manualSave(){
+
+saveBill();
 alert("Bill Saved");
 
 }
@@ -331,57 +335,82 @@ b.items.forEach(i=>{
 sales+=i.rate*i.qty;
 });
 
+sales-=b.discount||0;
+
 }
 
 });
 
 document.getElementById("dashboard").innerText=
-"Today's Sales: ₹"+sales+" | Bills: "+count;
+"Today's Sales ₹"+sales+" | Bills "+count;
 
 }
 
-function shareWhatsApp(){
+function viewTodayBills(){
 
-let phone=prompt("Customer WhatsApp Number");
+let bills=JSON.parse(localStorage.getItem("bills")||"[]");
 
-if(!phone) return;
+let today=new Date().toDateString();
 
-phone=phone.replace(/\D/g,"");
+let text="Today's Bills\n\n";
 
-let totalText=document.getElementById("total").innerText;
+let total=0;
+let count=0;
 
-let billText="";
+bills.forEach(b=>{
 
-bill.forEach(item=>{
-let line=item.rate*item.qty;
-billText+=item.cat+" "+item.rate+" x "+item.qty+" = "+line+"\n";
+let d=new Date(b.date).toDateString();
+
+if(d===today){
+
+count++;
+
+let billTotal=0;
+
+b.items.forEach(i=>{
+billTotal+=i.rate*i.qty;
 });
 
-let message=
-"HIRA Gifts & General\n"+
-"Main Road, Ambad\n"+
-"Mob: 7020773407\n\n"+
-"Bill No: "+billNo+"\n"+
-"Date: "+new Date().toLocaleDateString()+"\n\n"+
-billText+
-"\n"+totalText;
+billTotal-=b.discount||0;
 
-let url="https://wa.me/91"+phone+"?text="+encodeURIComponent(message);
+text+="Bill "+b.billNo+" ₹"+billTotal+"\n";
 
-window.open(url,"_blank");
+total+=billTotal;
+
+}
+
+});
+
+text+="\nTotal Today ₹"+total;
+text+="\nBills Count: "+count;
+
+alert(text);
 
 }
 
 function printBill(){
 
-let totalText=document.getElementById("total").innerText;
+saveBill();
 
-let billText="";
+let subtotal=0;
+
+let itemsHTML="";
 
 bill.forEach(item=>{
 let line=item.rate*item.qty;
-billText+=item.cat+" "+item.rate+" x "+item.qty+" = "+line+"<br>";
+subtotal+=line;
+itemsHTML+=item.cat+" "+item.rate+" x "+item.qty+" = "+line+"<br>";
 });
+
+let discount=Number(document.getElementById("discount").value);
+
+let total=subtotal-discount;
+
+let discountLine="";
+
+if(discount>0){
+discountLine="Subtotal : ₹"+subtotal+"<br>Discount : ₹"+discount+"<br>";
+}
 
 let win=window.open("","","width=300");
 
@@ -391,12 +420,21 @@ Main Road, Ambad<br>
 Mob: 7020773407<br><br>
 
 Bill No: ${billNo}<br>
-Date: ${new Date().toLocaleDateString()}<br><br>
+${new Date().toLocaleDateString()} • ${new Date().toLocaleTimeString()}<br><br>
 
-${billText}
+${itemsHTML}
 
 <hr>
-${totalText}
+
+${discountLine}
+Total : ₹${total}
+
+<hr>
+
+No Returns Accepted<br><br>
+
+Follow us on WhatsApp for gift ideas & new stock<br>
+Thank You • Visit Again
 `);
 
 win.print();
@@ -404,6 +442,8 @@ win.print();
 }
 
 function exportExcel(){
+
+saveBill();
 
 let bills=JSON.parse(localStorage.getItem("bills")||"[]");
 
@@ -425,37 +465,65 @@ a.click();
 
 }
 
-function viewBills(){
+function openPhonePopup(){
 
-let bills=JSON.parse(localStorage.getItem("bills")||"[]");
+document.getElementById("phonePopup").style.display="flex";
 
-if(bills.length===0){
-alert("No Bills Saved");
-return;
+setTimeout(()=>{
+document.getElementById("phoneInput").focus();
+},100);
+
 }
 
-let text="";
+function closePhonePopup(e){
 
-bills.forEach(b=>{
+if(e.target.id==="phonePopup"){
+document.getElementById("phonePopup").style.display="none";
+}
 
-text+="Bill "+b.billNo+" "+b.date+"\n";
+}
 
-b.items.forEach(i=>{
-let amt=i.rate*i.qty;
-text+=i.cat+" "+i.rate+" x "+i.qty+" = "+amt+"\n";
+function sendWhatsApp(){
+
+saveBill();
+
+let phone=document.getElementById("phoneInput").value;
+
+if(!phone) return;
+
+phone=phone.replace(/\D/g,"");
+
+let totalText=document.getElementById("total").innerText;
+
+let billText="";
+
+bill.forEach(item=>{
+let line=item.rate*item.qty;
+billText+=item.cat+" "+item.rate+" x "+item.qty+" = "+line+"\n";
 });
 
-text+="\n";
+let message=
+"HIRA Gifts & General\n"+
+"Main Road, Ambad\n"+
+"Mob: 7020773407\n\n"+
+"Bill No: "+billNo+"\n"+
+new Date().toLocaleDateString()+" • "+new Date().toLocaleTimeString()+"\n\n"+
+billText+
+"\n"+totalText;
 
-});
+let url="https://wa.me/91"+phone+"?text="+encodeURIComponent(message);
 
-alert(text);
+window.open(url,"_blank");
+
+document.getElementById("phonePopup").style.display="none";
 
 }
 
 function clearBill(){
 
 bill=[];
+billSaved=false;
+
 document.getElementById("discount").value=0;
 document.getElementById("round").checked=false;
 
@@ -465,10 +533,6 @@ renderBill();
 
 renderCategories();
 updateDashboard();
-
-if('serviceWorker' in navigator){
-navigator.serviceWorker.register('sw.js');
-}
 
 </script>
 
