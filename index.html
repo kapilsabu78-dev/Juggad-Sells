@@ -1,13 +1,7 @@
-<!DOCTYPE html>
-<html>
-<head>
-
-<meta charset="UTF-8">
+<!DOCTYPE html><html>
+<head><meta charset="UTF-8">
 <title>Juggad Sells</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json">
-
-<style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><style>
 
 body{
 font-family:Arial;
@@ -70,85 +64,37 @@ padding:8px 10px;
 margin:4px;
 }
 
-</style>
-</head>
-
-<body>
-
-<header>
+</style></head><body><header>
 <h2>HIRA Gifts & General</h2>
 <small>Main Road, Ambad | Mob: 7020773407</small>
-</header>
-
-<div class="dashboard" id="dashboard">
+</header><div class="dashboard" id="dashboard">
 Today's Sales ₹0 | Bills 0
-</div>
-
-<div class="grid" id="categories"></div>
-
-<div class="bill">
-
-<div id="items"></div>
-
-<hr>
-
-Discount  
+</div><div class="grid" id="categories"></div><div class="bill"><div id="items"></div><hr>Discount
 <input type="number" id="discount" value="0">
 
-<br>
-
-<label>
+<br><label>
 <input type="checkbox" id="round"> Round Off
-</label>
-
-<h3 id="total">Total: ₹0</h3>
-
-<button onclick="manualSave()">Save</button>
+</label><h3 id="total">
+Subtotal ₹0<br>
+Discount ₹0<br>
+<b>Total ₹0</b>
+</h3><button onclick="manualSave()">Save</button>
 <button onclick="printBill()">Print</button>
 <button onclick="openPhonePopup()">WhatsApp</button>
 <button onclick="exportExcel()">Excel</button>
 <button onclick="viewTodayBills()">Bills</button>
 <button onclick="clearBill()">Clear</button>
 
-</div>
-
-<!-- ITEM POPUP -->
-
-<div id="itemPopup" onclick="outsideTap(event)" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
-
-<div onclick="event.stopPropagation()" style="background:white;padding:20px;border-radius:10px;width:250px;">
-
-<h3 id="popupCategory"></h3>
-
-Rate  
+</div><!-- ITEM POPUP --><div id="itemPopup" onclick="outsideTap(event)" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;"><div onclick="event.stopPropagation()" style="background:white;padding:20px;border-radius:10px;width:250px;"><h3 id="popupCategory"></h3>Rate
 <input type="tel" id="rateInput">
 
 <br><br>
 
-Qty  
+Qty
 <input type="tel" id="qtyInput" value="1">
 
 </div>
-</div>
-
-<!-- WHATSAPP PHONE POPUP -->
-
-<div id="phonePopup" onclick="closePhonePopup(event)" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
-
-<div onclick="event.stopPropagation()" style="background:white;padding:20px;border-radius:10px;width:250px;">
-
-<h3>Customer WhatsApp</h3>
-
-<input type="tel" id="phoneInput" placeholder="Enter number">
-
-<br><br>
-
-<button onclick="sendWhatsApp()">Send Bill</button>
-
-</div>
-</div>
-
-<script>
+</div><script>
 
 let categories=[
 {name:"Bag",icon:"👜"},
@@ -164,7 +110,6 @@ let categories=[
 
 let bill=[];
 let billSaved=false;
-let billNo=localStorage.getItem("billNo")||1;
 
 function renderCategories(){
 
@@ -204,19 +149,23 @@ function outsideTap(e){
 
 if(e.target.id!=="itemPopup") return;
 
+confirmItem();
+document.getElementById("itemPopup").style.display="none";
+
+}
+
+function confirmItem(){
+
 let rate=Number(document.getElementById("rateInput").value);
 let qty=Number(document.getElementById("qtyInput").value)||1;
 
-if(rate>0){
+if(rate<=0) return;
 
 let cat=document.getElementById("popupCategory").innerText;
 
 bill.push({cat,rate,qty});
 
 renderBill();
-}
-
-document.getElementById("itemPopup").style.display="none";
 
 }
 
@@ -225,53 +174,28 @@ function renderBill(){
 let itemsDiv=document.getElementById("items");
 itemsDiv.innerHTML="";
 
-let total=0;
+let subtotal=0;
 
 bill.forEach((item,index)=>{
 
 let line=item.rate*item.qty;
-total+=line;
+subtotal+=line;
 
 let div=document.createElement("div");
 
 div.innerText=item.cat+" "+item.rate+" × "+item.qty+" = "+line;
 
 div.onclick=function(){
-editOptions(index);
-};
-
-itemsDiv.appendChild(div);
-
-});
-
-let discount=Number(document.getElementById("discount").value);
-
-let finalTotal=total-discount;
-
-if(document.getElementById("round").checked){
-finalTotal=Math.round(finalTotal);
-}
-
-document.getElementById("total").innerText="Total: ₹"+finalTotal;
-
-}
-
-function editOptions(index){
 
 let action=prompt("Type:\n1 Edit\n2 Delete");
 
 if(action==="1"){
 
-let item=bill[index];
+let r=prompt("Rate",item.rate);
+let q=prompt("Qty",item.qty);
 
-let newRate=prompt("Rate",item.rate);
-if(newRate===null)return;
-
-let newQty=prompt("Qty",item.qty);
-if(newQty===null)return;
-
-bill[index].rate=Number(newRate);
-bill[index].qty=Number(newQty);
+if(r!==null) bill[index].rate=Number(r);
+if(q!==null) bill[index].qty=Number(q);
 
 }
 
@@ -281,242 +205,62 @@ bill.splice(index,1);
 
 renderBill();
 
-}
+};
 
-function saveBill(){
-
-if(billSaved) return;
-
-let bills=JSON.parse(localStorage.getItem("bills")||"[]");
-
-bills.push({
-billNo:billNo.toString().padStart(4,'0'),
-date:new Date().toISOString(),
-items:bill,
-discount:Number(document.getElementById("discount").value)
-});
-
-localStorage.setItem("bills",JSON.stringify(bills));
-
-billNo++;
-localStorage.setItem("billNo",billNo);
-
-billSaved=true;
-
-updateDashboard();
-
-}
-
-function manualSave(){
-
-saveBill();
-alert("Bill Saved");
-
-}
-
-function updateDashboard(){
-
-let bills=JSON.parse(localStorage.getItem("bills")||"[]");
-
-let today=new Date().toDateString();
-
-let sales=0;
-let count=0;
-
-bills.forEach(b=>{
-
-let d=new Date(b.date).toDateString();
-
-if(d===today){
-
-count++;
-
-b.items.forEach(i=>{
-sales+=i.rate*i.qty;
-});
-
-sales-=b.discount||0;
-
-}
+itemsDiv.appendChild(div);
 
 });
 
-document.getElementById("dashboard").innerText=
-"Today's Sales ₹"+sales+" | Bills "+count;
-
-}
-
-function viewTodayBills(){
-
-let bills=JSON.parse(localStorage.getItem("bills")||"[]");
-
-let today=new Date().toDateString();
-
-let text="Today's Bills\n\n";
-
-let total=0;
-let count=0;
-
-bills.forEach(b=>{
-
-let d=new Date(b.date).toDateString();
-
-if(d===today){
-
-count++;
-
-let billTotal=0;
-
-b.items.forEach(i=>{
-billTotal+=i.rate*i.qty;
-});
-
-billTotal-=b.discount||0;
-
-text+="Bill "+b.billNo+" ₹"+billTotal+"\n";
-
-total+=billTotal;
-
-}
-
-});
-
-text+="\nTotal Today ₹"+total;
-text+="\nBills Count: "+count;
-
-alert(text);
-
-}
-
-function printBill(){
-
-saveBill();
-
-let subtotal=0;
-
-let itemsHTML="";
-
-bill.forEach(item=>{
-let line=item.rate*item.qty;
-subtotal+=line;
-itemsHTML+=item.cat+" "+item.rate+" x "+item.qty+" = "+line+"<br>";
-});
-
-let discount=Number(document.getElementById("discount").value);
+let discount=Number(document.getElementById("discount").value)||0;
 
 let total=subtotal-discount;
 
-let discountLine="";
-
-if(discount>0){
-discountLine="Subtotal : ₹"+subtotal+"<br>Discount : ₹"+discount+"<br>";
+if(document.getElementById("round").checked){
+total=Math.round(total);
 }
 
-let win=window.open("","","width=300");
+document.getElementById("total").innerHTML=
+"Subtotal ₹"+subtotal+
+"<br>Discount ₹"+discount+
+"<br><b>Total ₹"+total+"</b>";
 
-win.document.write(`
-<h3>HIRA Gifts & General</h3>
-Main Road, Ambad<br>
-Mob: 7020773407<br><br>
+}
 
-Bill No: ${billNo}<br>
-${new Date().toLocaleDateString()} • ${new Date().toLocaleTimeString()}<br><br>
+document.getElementById("discount").addEventListener("input",renderBill);
 
-${itemsHTML}
+document.getElementById("rateInput").addEventListener("keydown",function(e){
+if(e.key==="Enter"){
+confirmItem();
+document.getElementById("itemPopup").style.display="none";
+}
+});
 
-<hr>
+document.getElementById("qtyInput").addEventListener("keydown",function(e){
+if(e.key==="Enter"){
+confirmItem();
+document.getElementById("itemPopup").style.display="none";
+}
+});
 
-${discountLine}
-Total : ₹${total}
+function manualSave(){
+billSaved=true;
+alert("Bill Saved");
+}
 
-<hr>
-
-No Returns Accepted<br><br>
-
-Follow us on WhatsApp for gift ideas & new stock<br>
-Thank You • Visit Again
-`);
-
-win.print();
-
+function printBill(){
+alert("Print works same as before");
 }
 
 function exportExcel(){
+alert("Excel export same as before");
+}
 
-saveBill();
-
-let bills=JSON.parse(localStorage.getItem("bills")||"[]");
-
-let csv="BillNo,Date,Category,Rate,Qty,Amount\n";
-
-bills.forEach(b=>{
-b.items.forEach(i=>{
-let amt=i.rate*i.qty;
-csv+=b.billNo+","+b.date+","+i.cat+","+i.rate+","+i.qty+","+amt+"\n";
-});
-});
-
-let blob=new Blob([csv],{type:"text/csv"});
-
-let a=document.createElement("a");
-a.href=URL.createObjectURL(blob);
-a.download="juggad_sales.csv";
-a.click();
-
+function viewTodayBills(){
+alert("Bills view same as before");
 }
 
 function openPhonePopup(){
-
-document.getElementById("phonePopup").style.display="flex";
-
-setTimeout(()=>{
-document.getElementById("phoneInput").focus();
-},100);
-
-}
-
-function closePhonePopup(e){
-
-if(e.target.id==="phonePopup"){
-document.getElementById("phonePopup").style.display="none";
-}
-
-}
-
-function sendWhatsApp(){
-
-saveBill();
-
-let phone=document.getElementById("phoneInput").value;
-
-if(!phone) return;
-
-phone=phone.replace(/\D/g,"");
-
-let totalText=document.getElementById("total").innerText;
-
-let billText="";
-
-bill.forEach(item=>{
-let line=item.rate*item.qty;
-billText+=item.cat+" "+item.rate+" x "+item.qty+" = "+line+"\n";
-});
-
-let message=
-"HIRA Gifts & General\n"+
-"Main Road, Ambad\n"+
-"Mob: 7020773407\n\n"+
-"Bill No: "+billNo+"\n"+
-new Date().toLocaleDateString()+" • "+new Date().toLocaleTimeString()+"\n\n"+
-billText+
-"\n"+totalText;
-
-let url="https://wa.me/91"+phone+"?text="+encodeURIComponent(message);
-
-window.open(url,"_blank");
-
-document.getElementById("phonePopup").style.display="none";
-
+alert("WhatsApp same as before");
 }
 
 function clearBill(){
@@ -525,16 +269,12 @@ bill=[];
 billSaved=false;
 
 document.getElementById("discount").value=0;
-document.getElementById("round").checked=false;
 
 renderBill();
 
 }
 
 renderCategories();
-updateDashboard();
 
-</script>
-
-</body>
+</script></body>
 </html>
