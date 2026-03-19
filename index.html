@@ -216,7 +216,10 @@ bill.push({cat,rate,qty});
 renderBill();
 }
 
-document.getElementById("itemPopup").style.display="none";
+document.getElementById("total").innerHTML=
+"Subtotal ₹"+total+
+"<br>Discount ₹"+(discount||0)+
+"<br><b>Total ₹"+finalTotal+"</b>";
 
 }
 
@@ -244,7 +247,7 @@ itemsDiv.appendChild(div);
 
 });
 
-let discount=Number(document.getElementById("discount").value);
+let discount=Number(document.getElementById("discount").value)||0;
 
 let finalTotal=total-discount;
 
@@ -533,6 +536,28 @@ renderBill();
 
 renderCategories();
 updateDashboard();
+
+
+document.getElementById("discount").addEventListener("input",renderBill);
+
+document.getElementById("rateInput").addEventListener("keydown",function(e){
+if(e.key==="Enter"){
+outsideTap({target:{id:"itemPopup"}});
+}
+});
+
+document.getElementById("qtyInput").addEventListener("keydown",function(e){
+if(e.key==="Enter"){
+outsideTap({target:{id:"itemPopup"}});
+}
+});
+
+document.getElementById("discount").addEventListener("keydown",function(e){
+if(e.key==="Enter"){
+renderBill();
+}
+});
+
 
 </script>
 
