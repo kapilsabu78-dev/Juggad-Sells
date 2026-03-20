@@ -214,6 +214,10 @@ let cat=document.getElementById("popupCategory").innerText;
 bill.push({cat,rate,qty});
 
 renderBill();
+
+document.getElementById("rateInput").value="";
+document.getElementById("qtyInput").value=1;
+
 }
 
 document.getElementById("total").innerHTML=
@@ -540,14 +544,20 @@ updateDashboard();
 
 document.getElementById("discount").addEventListener("input",renderBill);
 
-document.getElementById("rateInput").addEventListener("keydown",function(e){
-if(e.key==="Enter"){
+confirmItem();
+document.getElementById("itemPopup").style.display="none";
+
+document.getElementById("rateInput").value="";
+document.getElementById("qtyInput").value=1;
 outsideTap({target:{id:"itemPopup"}});
 }
 });
 
-document.getElementById("qtyInput").addEventListener("keydown",function(e){
-if(e.key==="Enter"){
+confirmItem();
+document.getElementById("itemPopup").style.display="none";
+
+document.getElementById("rateInput").value="";
+document.getElementById("qtyInput").value=1;
 outsideTap({target:{id:"itemPopup"}});
 }
 });
