@@ -508,7 +508,6 @@ if(!phone) return;
 
 phone=phone.replace(/\D/g,"");
 
-let totalText=document.getElementById("total").innerText;
 
 let billText="";
 
@@ -517,6 +516,27 @@ let line=item.rate*item.qty;
 billText+=item.cat+" "+item.rate+" x "+item.qty+" = "+line+"\n";
 });
 
+let subtotal=0;
+
+bill.forEach(item=>{
+subtotal+=item.rate*item.qty;
+});
+
+let discount=Number(document.getElementById("discount").value)||0;
+
+let finalTotal=subtotal-discount;
+
+let totalSection="";
+
+if(discount>0){
+totalSection=
+"\nSubtotal ₹"+subtotal+
+"\nDiscount ₹"+discount+
+"\nTotal ₹"+finalTotal;
+}else{
+totalSection="\nTotal ₹"+subtotal;
+}
+
 let message=
 "HIRA Gifts & General\n"+
 "Main Road, Ambad\n"+
@@ -524,7 +544,7 @@ let message=
 "Bill No: "+billNo+"\n"+
 new Date().toLocaleDateString()+" • "+new Date().toLocaleTimeString()+"\n\n"+
 billText+
-"\n"+totalText;
+totalSection;
 
 let url="https://wa.me/91"+phone+"?text="+encodeURIComponent(message);
 
