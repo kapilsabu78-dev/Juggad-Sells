@@ -1,75 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-
 <meta charset="UTF-8">
 <title>Juggad Sells</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json">
 
 <style>
-
-body{
-font-family:Arial;
-margin:0;
-background:#f2f2f2;
-}
-
-header{
-background:#444;
-color:white;
-padding:12px;
-text-align:center;
-}
-
-.grid{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:10px;
-padding:10px;
-}
-
-.category{
-background:white;
-border-radius:8px;
-padding:15px;
-text-align:center;
-cursor:pointer;
-border:1px solid #ddd;
-font-size:18px;
-}
-
-.category span{
-display:block;
-font-size:26px;
-}
-
-.bill{
-background:white;
-margin:10px;
-padding:10px;
-border-radius:8px;
-}
-
-.dashboard{
-background:white;
-margin:10px;
-padding:10px;
-border-radius:8px;
-font-size:14px;
-}
-
-#items div{
-padding:8px;
-border-bottom:1px solid #eee;
-cursor:pointer;
-}
-
-button{
-padding:8px 10px;
-margin:4px;
-}
-
+body{font-family:Arial;margin:0;background:#f2f2f2;}
+header{background:#444;color:white;padding:12px;text-align:center;}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:10px;}
+.category{background:white;border-radius:8px;padding:15px;text-align:center;cursor:pointer;border:1px solid #ddd;font-size:18px;}
+.category span{display:block;font-size:26px;}
+.bill{background:white;margin:10px;padding:10px;border-radius:8px;}
+.dashboard{background:white;margin:10px;padding:10px;border-radius:8px;}
+#items div{padding:8px;border-bottom:1px solid #eee;}
+button{padding:8px;margin:4px;}
 </style>
 </head>
 
@@ -87,487 +32,181 @@ Today's Sales ₹0 | Bills 0
 <div class="grid" id="categories"></div>
 
 <div class="bill">
-
 <div id="items"></div>
-
 <hr>
 
-Discount  
-<input type="number" id="discount" value="0">
+Discount <input type="number" id="discount" value="0"><br>
+<label><input type="checkbox" id="round"> Round Off</label>
 
-<br>
+<h3 id="total">Subtotal ₹0<br>Discount ₹0<br><b>Total ₹0</b></h3>
 
-<label>
-<input type="checkbox" id="round"> Round Off
-</label>
-
-<h3 id="total">Total: ₹0</h3>
-
-<button onclick="manualSave()">Save</button>
+<button onclick="saveBill()">Save</button>
 <button onclick="printBill()">Print</button>
-<button onclick="openPhonePopup()">WhatsApp</button>
+<button onclick="sendWhatsApp()">WhatsApp</button>
 <button onclick="exportExcel()">Excel</button>
-<button onclick="viewTodayBills()">Bills</button>
+<button onclick="viewToday()">Bills</button>
 <button onclick="clearBill()">Clear</button>
-
-</div>
-
-<!-- ITEM POPUP -->
-
-<div id="itemPopup" onclick="outsideTap(event)" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
-
-<div onclick="event.stopPropagation()" style="background:white;padding:20px;border-radius:10px;width:250px;">
-
-<h3 id="popupCategory"></h3>
-
-Rate  
-<input type="tel" id="rateInput">
-
-<br><br>
-
-Qty  
-<input type="tel" id="qtyInput" value="1">
-
-</div>
-</div>
-
-<!-- WHATSAPP PHONE POPUP -->
-
-<div id="phonePopup" onclick="closePhonePopup(event)" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
-
-<div onclick="event.stopPropagation()" style="background:white;padding:20px;border-radius:10px;width:250px;">
-
-<h3>Customer WhatsApp</h3>
-
-<input type="tel" id="phoneInput" placeholder="Enter number">
-
-<br><br>
-
-<button onclick="sendWhatsApp()">Send Bill</button>
-
-</div>
 </div>
 
 <script>
 
-let categories=[
-{name:"Bag",icon:"👜"},
-{name:"Gifts",icon:"🎁"},
-{name:"Toys",icon:"🧸"},
-{name:"Events",icon:"🎉"},
-{name:"Cosmetics",icon:"💄"},
-{name:"Jewellery",icon:"💍"},
-{name:"Stationary",icon:"✏️"},
-{name:"Home Care",icon:"🧴"},
-{name:"Misc",icon:"🧾"}
-];
-
+let categories=["Bag","Gifts","Toys","Events","Cosmetics","Jewellery","Stationary","Home Care","Misc"];
 let bill=[];
-let billSaved=false;
 let billNo=localStorage.getItem("billNo")||1;
 
 function renderCategories(){
-
 let grid=document.getElementById("categories");
 grid.innerHTML="";
-
 categories.forEach(cat=>{
-
 let div=document.createElement("div");
 div.className="category";
-
-div.innerHTML="<span>"+cat.icon+"</span>"+cat.name;
-
-div.onclick=function(){
-openPopup(cat.name);
-};
-
+div.innerText=cat;
+div.onclick=()=>addItem(cat);
 grid.appendChild(div);
-
 });
 }
 
-function openPopup(cat){
-
-document.getElementById("popupCategory").innerText=cat;
-
-document.getElementById("rateInput").value="";
-document.getElementById("qtyInput").value=1;
-
-document.getElementById("itemPopup").style.display="flex";
-
-document.getElementById("rateInput").focus();
-
-}
-
-function outsideTap(e){
-
-if(e.target.id!=="itemPopup") return;
-
-let rate=Number(document.getElementById("rateInput").value);
-let qty=Number(document.getElementById("qtyInput").value)||1;
-
-if(rate>0){
-
-let cat=document.getElementById("popupCategory").innerText;
+function addItem(cat){
+let rate=Number(prompt("Rate?"));
+if(!rate) return;
+let qty=Number(prompt("Qty?"))||1;
 
 bill.push({cat,rate,qty});
-
 renderBill();
-
-document.getElementById("rateInput").value="";
-document.getElementById("qtyInput").value=1;
-
-}
-
-document.getElementById("total").innerHTML=
-"Subtotal ₹"+total+
-"<br>Discount ₹"+(discount||0)+
-"<br><b>Total ₹"+finalTotal+"</b>";
-
 }
 
 function renderBill(){
-
 let itemsDiv=document.getElementById("items");
 itemsDiv.innerHTML="";
 
-let total=0;
+let subtotal=0;
 
-bill.forEach((item,index)=>{
-
+bill.forEach((item,i)=>{
 let line=item.rate*item.qty;
-total+=line;
+subtotal+=line;
 
 let div=document.createElement("div");
+div.innerText=item.cat+" "+item.rate+"×"+item.qty+" = "+line;
 
-div.innerText=item.cat+" "+item.rate+" × "+item.qty+" = "+line;
-
-div.onclick=function(){
-editOptions(index);
+div.onclick=()=>{
+let action=prompt("1 Edit\n2 Delete");
+if(action==="1"){
+item.rate=Number(prompt("Rate",item.rate));
+item.qty=Number(prompt("Qty",item.qty));
+}
+if(action==="2") bill.splice(i,1);
+renderBill();
 };
 
 itemsDiv.appendChild(div);
-
 });
 
 let discount=Number(document.getElementById("discount").value)||0;
-
-let finalTotal=total-discount;
+let total=subtotal-discount;
 
 if(document.getElementById("round").checked){
-finalTotal=Math.round(finalTotal);
+total=Math.round(total);
 }
 
-document.getElementById("total").innerText="Total: ₹"+finalTotal;
-
+document.getElementById("total").innerHTML=
+"Subtotal ₹"+subtotal+
+"<br>Discount ₹"+discount+
+"<br><b>Total ₹"+total+"</b>";
 }
 
-function editOptions(index){
-
-let action=prompt("Type:\n1 Edit\n2 Delete");
-
-if(action==="1"){
-
-let item=bill[index];
-
-let newRate=prompt("Rate",item.rate);
-if(newRate===null)return;
-
-let newQty=prompt("Qty",item.qty);
-if(newQty===null)return;
-
-bill[index].rate=Number(newRate);
-bill[index].qty=Number(newQty);
-
-}
-
-if(action==="2"){
-bill.splice(index,1);
-}
-
-renderBill();
-
-}
+document.getElementById("discount").addEventListener("input",renderBill);
 
 function saveBill(){
-
-if(billSaved) return;
-
 let bills=JSON.parse(localStorage.getItem("bills")||"[]");
 
 bills.push({
-billNo:billNo.toString().padStart(4,'0'),
-date:new Date().toISOString(),
+billNo:billNo,
+date:new Date(),
 items:bill,
-discount:Number(document.getElementById("discount").value)
+discount:Number(document.getElementById("discount").value)||0
 });
 
 localStorage.setItem("bills",JSON.stringify(bills));
-
 billNo++;
 localStorage.setItem("billNo",billNo);
 
-billSaved=true;
-
 updateDashboard();
-
-}
-
-function manualSave(){
-
-saveBill();
-alert("Bill Saved");
-
+alert("Saved");
 }
 
 function updateDashboard(){
-
 let bills=JSON.parse(localStorage.getItem("bills")||"[]");
-
 let today=new Date().toDateString();
-
-let sales=0;
-let count=0;
+let sales=0,count=0;
 
 bills.forEach(b=>{
-
-let d=new Date(b.date).toDateString();
-
-if(d===today){
-
+if(new Date(b.date).toDateString()===today){
 count++;
-
-b.items.forEach(i=>{
-sales+=i.rate*i.qty;
-});
-
+b.items.forEach(i=>sales+=i.rate*i.qty);
 sales-=b.discount||0;
-
 }
-
 });
 
 document.getElementById("dashboard").innerText=
 "Today's Sales ₹"+sales+" | Bills "+count;
-
 }
 
-function viewTodayBills(){
-
+function viewToday(){
 let bills=JSON.parse(localStorage.getItem("bills")||"[]");
-
 let today=new Date().toDateString();
-
-let text="Today's Bills\n\n";
-
-let total=0;
-let count=0;
+let text="";
 
 bills.forEach(b=>{
-
-let d=new Date(b.date).toDateString();
-
-if(d===today){
-
-count++;
-
-let billTotal=0;
-
-b.items.forEach(i=>{
-billTotal+=i.rate*i.qty;
-});
-
-billTotal-=b.discount||0;
-
-text+="Bill "+b.billNo+" ₹"+billTotal+"\n";
-
-total+=billTotal;
-
+if(new Date(b.date).toDateString()===today){
+let total=0;
+b.items.forEach(i=>total+=i.rate*i.qty);
+total-=b.discount||0;
+text+="Bill "+b.billNo+" ₹"+total+"\n";
 }
-
 });
 
-text+="\nTotal Today ₹"+total;
-text+="\nBills Count: "+count;
-
-alert(text);
-
+alert(text||"No bills");
 }
 
 function printBill(){
-
-saveBill();
-
-let subtotal=0;
-
-let itemsHTML="";
-
-bill.forEach(item=>{
-let line=item.rate*item.qty;
-subtotal+=line;
-itemsHTML+=item.cat+" "+item.rate+" x "+item.qty+" = "+line+"<br>";
-});
-
-let discount=Number(document.getElementById("discount").value);
-
-let total=subtotal-discount;
-
-let discountLine="";
-
-if(discount>0){
-discountLine="Subtotal : ₹"+subtotal+"<br>Discount : ₹"+discount+"<br>";
-}
-
-let win=window.open("","","width=300");
-
-win.document.write(`
-<h3>HIRA Gifts & General</h3>
-Main Road, Ambad<br>
-Mob: 7020773407<br><br>
-
-Bill No: ${billNo}<br>
-${new Date().toLocaleDateString()} • ${new Date().toLocaleTimeString()}<br><br>
-
-${itemsHTML}
-
-<hr>
-
-${discountLine}
-Total : ₹${total}
-
-<hr>
-
-No Returns Accepted<br><br>
-
-Follow us on WhatsApp for gift ideas & new stock<br>
-Thank You • Visit Again
-`);
-
-win.print();
-
-}
-
-function exportExcel(){
-
-saveBill();
-
-let bills=JSON.parse(localStorage.getItem("bills")||"[]");
-
-let csv="BillNo,Date,Category,Rate,Qty,Amount\n";
-
-bills.forEach(b=>{
-b.items.forEach(i=>{
-let amt=i.rate*i.qty;
-csv+=b.billNo+","+b.date+","+i.cat+","+i.rate+","+i.qty+","+amt+"\n";
-});
-});
-
-let blob=new Blob([csv],{type:"text/csv"});
-
-let a=document.createElement("a");
-a.href=URL.createObjectURL(blob);
-a.download="juggad_sales.csv";
-a.click();
-
-}
-
-function openPhonePopup(){
-
-document.getElementById("phonePopup").style.display="flex";
-
-setTimeout(()=>{
-document.getElementById("phoneInput").focus();
-},100);
-
-}
-
-function closePhonePopup(e){
-
-if(e.target.id==="phonePopup"){
-document.getElementById("phonePopup").style.display="none";
-}
-
+window.print();
 }
 
 function sendWhatsApp(){
+let text="HIRA Gifts & General\n";
+bill.forEach(i=>{
+text+=i.cat+" "+i.rate+"×"+i.qty+"\n";
+});
+text+="\n"+document.getElementById("total").innerText;
 
-saveBill();
+window.open("https://wa.me/?text="+encodeURIComponent(text));
+}
 
-let phone=document.getElementById("phoneInput").value;
+function exportExcel(){
+let bills=JSON.parse(localStorage.getItem("bills")||"[]");
+let csv="Bill,Category,Rate,Qty\n";
 
-if(!phone) return;
-
-phone=phone.replace(/\D/g,"");
-
-let totalText=document.getElementById("total").innerText;
-
-let billText="";
-
-bill.forEach(item=>{
-let line=item.rate*item.qty;
-billText+=item.cat+" "+item.rate+" x "+item.qty+" = "+line+"\n";
+bills.forEach(b=>{
+b.items.forEach(i=>{
+csv+=b.billNo+","+i.cat+","+i.rate+","+i.qty+"\n";
+});
 });
 
-let message=
-"HIRA Gifts & General\n"+
-"Main Road, Ambad\n"+
-"Mob: 7020773407\n\n"+
-"Bill No: "+billNo+"\n"+
-new Date().toLocaleDateString()+" • "+new Date().toLocaleTimeString()+"\n\n"+
-billText+
-"\n"+totalText;
-
-let url="https://wa.me/91"+phone+"?text="+encodeURIComponent(message);
-
-window.open(url,"_blank");
-
-document.getElementById("phonePopup").style.display="none";
-
+let blob=new Blob([csv]);
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="sales.csv";
+a.click();
 }
 
 function clearBill(){
-
 bill=[];
-billSaved=false;
-
 document.getElementById("discount").value=0;
-document.getElementById("round").checked=false;
-
 renderBill();
-
 }
 
 renderCategories();
 updateDashboard();
-
-
-document.getElementById("discount").addEventListener("input",renderBill);
-
-confirmItem();
-document.getElementById("itemPopup").style.display="none";
-
-document.getElementById("rateInput").value="";
-document.getElementById("qtyInput").value=1;
-outsideTap({target:{id:"itemPopup"}});
-}
-});
-
-confirmItem();
-document.getElementById("itemPopup").style.display="none";
-
-document.getElementById("rateInput").value="";
-document.getElementById("qtyInput").value=1;
-outsideTap({target:{id:"itemPopup"}});
-}
-});
-
-document.getElementById("discount").addEventListener("keydown",function(e){
-if(e.key==="Enter"){
-renderBill();
-}
-});
-
 
 </script>
 
