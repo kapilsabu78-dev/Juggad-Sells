@@ -84,8 +84,6 @@ padding:15px;
 "></div>
 
 
-
-
 <div id="inventoryScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:999;padding:15px;overflow:auto;"></div>
 
 <div id="stockScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:999;padding:15px;overflow:auto;"></div>
@@ -866,7 +864,7 @@ alert(text);
 }
 
 
-// ===== TAG MAP =====
+// ===== TAG MAP (editable) =====
 if(!localStorage.getItem("tagMap")){
 localStorage.setItem("tagMap", JSON.stringify({
 "Bag":["@purse","@handpurse","@etc"],
@@ -876,7 +874,7 @@ localStorage.setItem("tagMap", JSON.stringify({
 }));
 }
 
-// ===== INVENTORY INPUT =====
+// ===== INVENTORY =====
 const Inventory = {
 
 category:"",
@@ -917,9 +915,30 @@ tags.forEach(t=>{
 html+=`<button onclick="Inventory.selectTag('${t}')">${t}</button>`;
 });
 
+// add new tag
+html+=`<br><button onclick="Inventory.addTag()">+ Add Tag</button>`;
+
 html+=`<br><br><button onclick="Inventory.showCategories()">Back</button>`;
 
 document.getElementById("inventoryScreen").innerHTML=html;
+},
+
+addTag(){
+
+let newTag = prompt("Enter tag (start with @)");
+if(!newTag) return;
+
+let tagMap = JSON.parse(localStorage.getItem("tagMap"));
+
+if(!tagMap[this.category]){
+tagMap[this.category]=["@etc"];
+}
+
+tagMap[this.category].push(newTag);
+
+localStorage.setItem("tagMap", JSON.stringify(tagMap));
+
+this.selectCategory(this.category);
 },
 
 selectTag(tag){
@@ -958,7 +977,7 @@ let total = rate * qty;
 
 let data = JSON.parse(localStorage.getItem("inventory")||"[]");
 
-// ===== MERGE LOGIC =====
+// merge
 let existing = data.find(d=>d.category===this.category && d.tag===this.tag);
 
 if(existing){
@@ -973,7 +992,7 @@ cost:total
 });
 }
 
-// ===== HISTORY ALWAYS NEW =====
+// history always separate
 let history = JSON.parse(localStorage.getItem("history")||"[]");
 
 history.push({
@@ -993,31 +1012,39 @@ this.showCategories();
 }
 };
 
-// ===== STOCK VIEW =====
+
+// ===== STOCK =====
 const Stock = {
 
 view(){
 
 let data = JSON.parse(localStorage.getItem("inventory")||"[]");
 
-let html="<h2>Stock</h2>";
-
-if(data.length===0){
-html+="No stock";
-}
+let grouped={};
 
 data.forEach(d=>{
+if(!grouped[d.category]) grouped[d.category]=[];
+grouped[d.category].push(d);
+});
+
+let html="<h2>Stock</h2>";
+
+for(let cat in grouped){
+
+html+=`<h3>${cat}</h3>`;
+
+grouped[cat].forEach(d=>{
 
 let rate=(d.cost/d.qty).toFixed(2);
 
 html+=`
-<div style="border-bottom:1px solid #ddd;padding:8px;">
-<b>${d.category} → ${d.tag}</b><br>
-Qty: ${d.qty} | ₹${d.cost}<br>
-Rate: ₹${rate}/pc
+<div style="padding-left:10px;">
+${d.tag} → Qty: ${d.qty} | ₹${d.cost} | ₹${rate}/pc
 </div>
 `;
 });
+
+}
 
 html+=`<br><button onclick="Stock.close()">Close</button>`;
 
@@ -1031,6 +1058,7 @@ document.getElementById("stockScreen").style.display="none";
 }
 };
 
+
 // ===== HISTORY =====
 const History = {
 
@@ -1038,41 +1066,18 @@ view(){
 
 let data = JSON.parse(localStorage.getItem("history")||"[]");
 
-let html=`
-<h2>History</h2>
+let html="<h2>History</h2><hr>";
 
-<select id="filterCat" onchange="History.view()">
-<option value="">All Categories</option>
-${this.catOptions(data)}
-</select>
+// category buttons
+let cats=[...new Set(data.map(d=>d.category))];
 
-<select id="filterMonth" onchange="History.view()">
-<option value="">All Months</option>
-${this.monthOptions(data)}
-</select>
-
-<hr>
-`;
-
-let cat=document.getElementById("filterCat")?.value||"";
-let month=document.getElementById("filterMonth")?.value||"";
-
-let filtered=data.filter(d=>{
-
-let okCat = cat ? d.category===cat : true;
-
-let okMonth=true;
-if(month){
-let m=new Date(d.date).toISOString().slice(0,7);
-okMonth = m===month;
-}
-
-return okCat && okMonth;
+cats.forEach(c=>{
+html+=`<button onclick="History.filterCat('${c}')">${c}</button>`;
 });
 
-filtered.reverse();
+html+=`<button onclick="History.view()">All</button><hr>`;
 
-filtered.forEach((d,i)=>{
+data.slice().reverse().forEach((d,i)=>{
 
 let rate=(d.cost/d.qty).toFixed(2);
 let date=new Date(d.date).toLocaleString();
@@ -1080,8 +1085,7 @@ let date=new Date(d.date).toLocaleString();
 html+=`
 <div style="border-bottom:1px solid #ddd;padding:8px;">
 <b>${d.category} → ${d.tag}</b><br>
-Qty: ${d.qty} | ₹${d.cost}<br>
-Rate: ₹${rate}/pc<br>
+Qty: ${d.qty} | ₹${d.cost} | ₹${rate}/pc<br>
 <small>${date}</small><br>
 
 <button onclick="History.del(${i})">Delete</button>
@@ -1094,6 +1098,32 @@ html+=`<br><button onclick="History.close()">Close</button>`;
 let screen=document.getElementById("historyScreen");
 screen.innerHTML=html;
 screen.style.display="block";
+},
+
+filterCat(cat){
+
+let data = JSON.parse(localStorage.getItem("history")||"[]");
+
+let filtered=data.filter(d=>d.category===cat);
+
+let html=`<h2>${cat} History</h2><hr>`;
+
+filtered.slice().reverse().forEach((d,i)=>{
+
+let rate=(d.cost/d.qty).toFixed(2);
+let date=new Date(d.date).toLocaleString();
+
+html+=`
+<div style="border-bottom:1px solid #ddd;padding:8px;">
+${d.tag} → Qty:${d.qty} | ₹${d.cost} | ₹${rate}/pc<br>
+<small>${date}</small>
+</div>
+`;
+});
+
+html+=`<br><button onclick="History.view()">Back</button>`;
+
+document.getElementById("historyScreen").innerHTML=html;
 },
 
 del(i){
@@ -1113,31 +1143,10 @@ localStorage.setItem("history",JSON.stringify(data));
 this.view();
 },
 
-catOptions(data){
-let set=new Set();
-data.forEach(d=>set.add(d.category));
-let html="";
-set.forEach(c=>html+=`<option value="${c}">${c}</option>`);
-return html;
-},
-
-monthOptions(data){
-let set=new Set();
-data.forEach(d=>{
-let m=new Date(d.date).toISOString().slice(0,7);
-set.add(m);
-});
-let html="";
-set.forEach(m=>html+=`<option value="${m}">${m}</option>`);
-return html;
-},
-
 close(){
 document.getElementById("historyScreen").style.display="none";
 }
 };
-
-
 
 
 
