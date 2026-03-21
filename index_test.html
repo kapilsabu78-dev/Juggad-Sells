@@ -187,7 +187,7 @@ this.tag=tag;
 document.getElementById("invScreen").innerHTML=`
 <h3>${this.category} → ${this.tag}</h3>
 
-Cost ₹<br>
+Rate ₹<br>
 <input type="number" id="invCost"><br><br>
 
 Qty<br>
@@ -198,6 +198,9 @@ Qty<br>
 <button onclick="InventoryApp.selectCategory('${this.category}')">Back</button>
 `;
 },
+
+
+
 
 save(){
 
@@ -222,10 +225,11 @@ cost:totalCost
 
 localStorage.setItem("inventory", JSON.stringify(data));
 
-alert("Saved → ₹" + totalCost);
+alert("Saved ₹" + totalCost);
 
 this.showCategories();
-}
+},
+
 
 
 
