@@ -104,7 +104,6 @@ const InventoryApp = {
 category:"",
 tag:"",
 
-
 open(){
 document.getElementById("invScreen").style.display="block";
 this.showCategories();
@@ -126,7 +125,6 @@ html+=`<br><br><button onclick="InventoryApp.close()">Close</button>`;
 
 document.getElementById("invScreen").innerHTML=html;
 },
-
 
 selectCategory(cat){
 
@@ -168,20 +166,8 @@ alert("Tag added");
 this.selectCategory(this.category);
 },
 
-removeTag(tag){
-
-let tagMap = JSON.parse(localStorage.getItem("tagMap"));
-
-tagMap[this.category] = tagMap[this.category].filter(t=>t!==tag);
-
-localStorage.setItem("tagMap", JSON.stringify(tagMap));
-
-alert("Removed");
-
-this.selectCategory(this.category);
-},
-
 selectTag(tag){
+
 this.tag=tag;
 
 document.getElementById("invScreen").innerHTML=`
@@ -198,9 +184,6 @@ Qty<br>
 <button onclick="InventoryApp.selectCategory('${this.category}')">Back</button>
 `;
 },
-
-
-
 
 save(){
 
@@ -228,28 +211,10 @@ localStorage.setItem("inventory", JSON.stringify(data));
 alert("Saved ₹" + totalCost);
 
 this.showCategories();
-},
-
-
-
-
-let data=JSON.parse(localStorage.getItem("inventory")||"[]");
-
-data.push({
-category:this.category,
-tag:this.tag,
-qty,
-cost
-});
-
-localStorage.setItem("inventory",JSON.stringify(data));
-
-alert("Saved");
-
-this.showCategories();
-},
+}
 
 };
+
 
 </script>
 
