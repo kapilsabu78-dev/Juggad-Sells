@@ -88,6 +88,16 @@ overflow:auto;
 padding:15px;
 "></div>
 
+<div id="historyScreen" style="
+display:none;
+position:fixed;
+top:0;left:0;right:0;bottom:0;
+background:#fff;
+z-index:999;
+overflow:auto;
+padding:15px;
+"></div>
+
 <script>
 
 if(!localStorage.getItem("tagMap")){
@@ -216,6 +226,185 @@ this.showCategories();
 };
 
 
+
+// ===== INVENTORY HISTORY SYSTEM =====
+
+// open screen
+function viewInventoryHistory(){
+
+let data = JSON.parse(localStorage.getItem("inventory") || "[]");
+
+let screen = document.getElementById("historyScreen");
+
+// controls UI
+let html = `
+<h2>Inventory History</h2>
+
+<select id="filterCategory" onchange="viewInventoryHistory()">
+<option value="">All Categories</option>
+${getCategoryOptions()}
+</select>
+
+<select id="filterMonth" onchange="viewInventoryHistory()">
+<option value="">All Months</option>
+${getMonthOptions(data)}
+</select>
+
+<hr>
+`;
+
+let selectedCat = document.getElementById("filterCategory")?.value || "";
+let selectedMonth = document.getElementById("filterMonth")?.value || "";
+
+// filter logic
+let filtered = data.filter(d=>{
+
+let matchCat = selectedCat ? d.category===selectedCat : true;
+
+let matchMonth = true;
+if(selectedMonth){
+let dMonth = new Date(d.date).toISOString().slice(0,7);
+matchMonth = dMonth === selectedMonth;
+}
+
+return matchCat && matchMonth;
+});
+
+// newest first
+filtered = filtered.reverse();
+
+if(filtered.length===0){
+html += "No records";
+}
+
+// render entries
+filtered.forEach((d,i)=>{
+
+let date = new Date(d.date).toLocaleString();
+
+html += `
+<div style="border-bottom:1px solid #ddd;padding:8px;">
+<b>${d.category} → ${d.tag}</b><br>
+Qty: ${d.qty} | ₹${d.cost}<br>
+<small>${date}</small><br>
+
+<button onclick="editInventory(${i})">Edit</button>
+<button onclick="deleteInventory(${i})">Delete</button>
+</div>
+`;
+});
+
+// monthly total
+let total = filtered.reduce((sum,d)=>sum+d.cost,0);
+
+html += `<h3>Total ₹${total}</h3>`;
+
+html += `<br><button onclick="closeHistory()">Close</button>`;
+
+screen.innerHTML = html;
+screen.style.display="block";
+}
+
+
+// ===== EDIT =====
+function editInventory(index){
+
+let data = JSON.parse(localStorage.getItem("inventory") || "[]");
+
+// reverse index correction
+data = data.reverse();
+
+let item = data[index];
+
+let newRate = Number(prompt("Rate", item.cost / item.qty));
+if(!newRate) return;
+
+let newQty = Number(prompt("Qty", item.qty));
+if(!newQty) return;
+
+item.qty = newQty;
+item.cost = newRate * newQty;
+
+// restore order
+data = data.reverse();
+
+localStorage.setItem("inventory", JSON.stringify(data));
+
+alert("Updated");
+
+viewInventoryHistory();
+}
+
+
+// ===== DELETE =====
+function deleteInventory(index){
+
+let data = JSON.parse(localStorage.getItem("inventory") || "[]");
+
+data = data.reverse();
+
+if(!confirm("Delete this entry?")) return;
+
+data.splice(index,1);
+
+data = data.reverse();
+
+localStorage.setItem("inventory", JSON.stringify(data));
+
+alert("Deleted");
+
+viewInventoryHistory();
+}
+
+
+// ===== CATEGORY FILTER OPTIONS =====
+function getCategoryOptions(){
+
+let cats = new Set();
+
+let data = JSON.parse(localStorage.getItem("inventory") || "[]");
+
+data.forEach(d=>cats.add(d.category));
+
+let html="";
+
+cats.forEach(c=>{
+html += `<option value="${c}">${c}</option>`;
+});
+
+return html;
+}
+
+
+// ===== MONTH FILTER OPTIONS =====
+function getMonthOptions(data){
+
+let months = new Set();
+
+data.forEach(d=>{
+let m = new Date(d.date).toISOString().slice(0,7);
+months.add(m);
+});
+
+let html="";
+
+months.forEach(m=>{
+html += `<option value="${m}">${m}</option>`;
+});
+
+return html;
+}
+
+
+// ===== CLOSE =====
+function closeHistory(){
+document.getElementById("historyScreen").style.display="none";
+}
+
+
+
+
+
 </script>
 
 
@@ -261,6 +450,7 @@ Discount
 <button onclick="InventoryApp.open()">Inventory</button>
 
 <button onclick="viewStock()">Stock</button>
+<button onclick="viewInventoryHistory()">History</button>
 
 
 
