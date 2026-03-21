@@ -127,12 +127,25 @@ html+=`<br><br><button onclick="InventoryApp.close()">Close</button>`;
 document.getElementById("invScreen").innerHTML=html;
 },
 
+
 selectCategory(cat){
-html += `<br><button onclick="InventoryApp.addTag()">+ Add Tag</button>`;
+
 this.category=cat;
 
 let tagMap = JSON.parse(localStorage.getItem("tagMap"));
+let tags = tagMap[cat] || ["@etc"];
 
+let html=`<h3>${cat} → Select Tag</h3>`;
+
+tags.forEach(t=>{
+html+=`<button onclick="InventoryApp.selectTag('${t}')">${t}</button>`;
+});
+
+html+=`<br><button onclick="InventoryApp.addTag()">+ Add Tag</button>`;
+html+=`<br><br><button onclick="InventoryApp.showCategories()">Back</button>`;
+
+document.getElementById("invScreen").innerHTML=html;
+},
 
 addTag(){
 
@@ -153,7 +166,7 @@ localStorage.setItem("tagMap", JSON.stringify(tagMap));
 alert("Tag added");
 
 this.selectCategory(this.category);
-}
+},
 
 removeTag(tag){
 
@@ -166,59 +179,7 @@ localStorage.setItem("tagMap", JSON.stringify(tagMap));
 alert("Removed");
 
 this.selectCategory(this.category);
-}
-
-
-let html=`<h3>${cat} → Select Tag</h3>`;
-
-tags.forEach(t=>{
-html+=`<button onclick="InventoryApp.selectTag('${t}')">${t}</button>`;
-});
-
-html+=`<br><br><button onclick="InventoryApp.showCategories()">Back</button>`;
-
-document.getElementById("invScreen").innerHTML=html;
 },
-
-selectTag(tag){
-this.tag=tag;
-
-document.getElementById("invScreen").innerHTML=`
-<h3>${this.category} → ${this.tag}</h3>
-
-Cost ₹<br>
-<input type="number" id="invCost"><br><br>
-
-Qty<br>
-<input type="number" id="invQty" value="1"><br><br>
-`;
-},
-
-save(){
-
-let cost=Number(document.getElementById("invCost").value);
-let qty=Number(document.getElementById("invQty").value)||1;
-
-if(!cost){
-alert("Enter cost");
-return;
-}
-
-let data=JSON.parse(localStorage.getItem("inventory")||"[]");
-
-data.push({
-category:this.category,
-tag:this.tag,
-qty,
-cost
-});
-
-localStorage.setItem("inventory",JSON.stringify(data));
-
-alert("Saved");
-
-this.showCategories();
-}
 
 };
 
