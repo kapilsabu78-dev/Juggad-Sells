@@ -230,25 +230,17 @@ this.showCategories();
 // ===== INVENTORY HISTORY SYSTEM =====
 
 // open screen
+
 function viewInventoryHistory(){
 
-let data = JSON.parse(localStorage.getItem("inventory") || "[]");
+alert("history triggered");
 
 let screen = document.getElementById("historyScreen");
 
-// controls UI
-let html = `
-<h2>Inventory History</h2>
+screen.innerHTML = "<h2>Working</h2>";
 
-<select id="filterCategory" onchange="viewInventoryHistory()">
-<option value="">All Categories</option>
-${getCategoryOptions()}
-</select>
-
-<select id="filterMonth" onchange="viewInventoryHistory()">
-<option value="">All Months</option>
-${getMonthOptions(data)}
-</select>
+screen.style.display = "block";
+}
 
 <hr>
 `;
