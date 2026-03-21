@@ -401,20 +401,36 @@ function closeHistory(){
 document.getElementById("historyScreen").style.display="none";
 }
 
-
 function viewInventoryHistory(){
+
+let data = JSON.parse(localStorage.getItem("inventory") || "[]");
 
 let screen = document.getElementById("historyScreen");
 
-screen.innerHTML = "<h2>History Opened</h2><button onclick='closeHistory()'>Close</button>";
+let html = "<h2>Inventory History</h2>";
 
+if(data.length===0){
+html += "No data found";
+}
+
+data.forEach(d=>{
+html += `
+<div style="border-bottom:1px solid #ddd;padding:8px;">
+<b>${d.category} → ${d.tag}</b><br>
+Qty: ${d.qty} | ₹${d.cost}
+</div>
+`;
+});
+
+html += "<br><button onclick='closeHistory()'>Close</button>";
+
+screen.innerHTML = html;
 screen.style.display = "block";
 }
 
 function closeHistory(){
 document.getElementById("historyScreen").style.display="none";
 }
-
 
 
 
