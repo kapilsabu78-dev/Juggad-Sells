@@ -73,6 +73,139 @@ margin:4px;
 </style>
 </head>
 
+
+
+<div id="inventoryScreen" style="
+display:none;
+position:fixed;
+top:0;
+left:0;
+right:0;
+bottom:0;
+background:white;
+z-index:999;
+overflow:auto;
+padding:15px;
+">
+
+<h2>Inventory</h2>
+
+<div id="invContent"></div>
+
+<button onclick="closeInventory()">Close</button>
+
+</div>
+
+<script>
+
+let invCategory = "";
+let invTag = "";
+
+let tagMap = {
+  "Bag": ["@purse","@handpurse","@sag","@treking","@luggage","@trolley","@etc"],
+  "Toys": ["@push","@puzzle","@gadgets","@rideons","@soft&dolls","@sports","@activity","@etc"],
+  "Gifts": ["@decor","@premium","@festival","@etc"],
+  "Cosmetics": ["@daily","@premium","@etc"],
+  "Jewellery": ["@set","@single","@etc"],
+  "Stationary": ["@pen","@notebook","@etc"],
+  "Home Care": ["@kitchen","@decor","@etc"],
+  "Events": ["@birthday","@wedding","@etc"],
+  "Misc": ["@etc"]
+};
+
+function toggleInventory(){
+document.getElementById("inventoryScreen").style.display="block";
+showInvCategories();
+}
+
+function closeInventory(){
+document.getElementById("inventoryScreen").style.display="none";
+}
+
+function showInvCategories(){
+
+let html="<h3>Select Category</h3>";
+
+categories.forEach(c=>{
+html+=`<button onclick="selectInvCategory('${c.name}')">${c.name}</button>`;
+});
+
+document.getElementById("invContent").innerHTML=html;
+}
+
+function selectInvCategory(cat){
+invCategory=cat;
+
+let tags = tagMap[cat] || ["@etc"];
+
+let html=`<h3>${cat} → Select Tag</h3>`;
+
+tags.forEach(t=>{
+html+=`<button onclick="selectInvTag('${t}')">${t}</button>`;
+});
+
+html+=`<br><br><button onclick="showInvCategories()">Back</button>`;
+
+document.getElementById("invContent").innerHTML=html;
+}
+
+function selectInvTag(tag){
+invTag=tag;
+
+document.getElementById("invContent").innerHTML=`
+<h3>${invCategory} → ${invTag}</h3>
+
+Cost ₹<br>
+<input type="number" id="invCost"><br><br>
+
+Qty<br>
+<input type="number" id="invQty" value="1"><br><br>
+
+Note<br>
+<input type="text" id="invNote"><br><br>
+
+<button onclick="saveInv()">Save</button>
+`;
+}
+
+function saveInv(){
+
+let cost=Number(document.getElementById("invCost").value);
+let qty=Number(document.getElementById("invQty").value)||1;
+let note=document.getElementById("invNote").value;
+
+if(!cost){
+alert("Enter cost");
+return;
+}
+
+let data = JSON.parse(localStorage.getItem("inventory")||"[]");
+
+let existing = data.find(d=>d.category===invCategory && d.tag===invTag);
+
+if(existing){
+
+if(confirm("Merge with existing?")){
+existing.qty += qty;
+existing.cost += cost;
+}else{
+data.push({category:invCategory,tag:invTag,qty,cost,note,date:new Date()});
+}
+
+}else{
+data.push({category:invCategory,tag:invTag,qty,cost,note,date:new Date()});
+}
+
+localStorage.setItem("inventory",JSON.stringify(data));
+
+alert("Saved");
+
+showInvCategories();
+}
+
+</script>
+
+
 <body>
 
 <header>
@@ -113,6 +246,11 @@ Discount
 
 <button onclick="openInventory()">+ Inventory</button>
 <button onclick="viewStock()">Stock</button>
+
+
+<button onclick="toggleInventory()">Inventory</button>
+
+
 
 </div>
 
