@@ -402,6 +402,19 @@ document.getElementById("historyScreen").style.display="none";
 }
 
 
+function viewInventoryHistory(){
+
+let screen = document.getElementById("historyScreen");
+
+screen.innerHTML = "<h2>History Opened</h2><button onclick='closeHistory()'>Close</button>";
+
+screen.style.display = "block";
+}
+
+function closeHistory(){
+document.getElementById("historyScreen").style.display="none";
+}
+
 
 
 
@@ -450,8 +463,7 @@ Discount
 <button onclick="InventoryApp.open()">Inventory</button>
 
 <button onclick="viewStock()">Stock</button>
-<button onclick="alert('working')">History</button>
-
+<button onclick="viewInventoryHistory()">History</button>
 
 </div>
 
