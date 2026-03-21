@@ -182,7 +182,8 @@ selectTag(tag){
 
 this.tag=tag;
 
-document.getElementById("invScreen").innerHTML=`
+document.getElementById("invScreen").innerHTML=
+`
 <h3>${this.category} → ${this.tag}</h3>
 
 Rate ₹<br>
@@ -193,6 +194,7 @@ Qty<br>
 
 <button onclick="InventoryApp.save()">Save</button>
 <br><br>
+
 <button onclick="InventoryApp.selectCategory('${this.category}')">Back</button>
 `;
 },
