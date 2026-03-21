@@ -90,11 +90,6 @@ padding:15px;
 
 <script>
 
-const InventoryApp = {
-
-category:"",
-tag:"",
-
 if(!localStorage.getItem("tagMap")){
 localStorage.setItem("tagMap", JSON.stringify({
 "Bag":["@purse","@handpurse","@etc"],
@@ -104,15 +99,11 @@ localStorage.setItem("tagMap", JSON.stringify({
 }));
 }
 
+const InventoryApp = {
 
+category:"",
+tag:"",
 
-
-tagMap:{
-"Bag":["@purse","@handpurse","@etc"],
-"Toys":["@push","@puzzle","@etc"],
-"Gifts":["@decor","@etc"],
-"Misc":["@etc"]
-},
 
 open(){
 document.getElementById("invScreen").style.display="block";
@@ -137,14 +128,11 @@ document.getElementById("invScreen").innerHTML=html;
 },
 
 selectCategory(cat){
+html += `<br><button onclick="InventoryApp.addTag()">+ Add Tag</button>`;
 this.category=cat;
 
 let tagMap = JSON.parse(localStorage.getItem("tagMap"));
 
-
-
-
-html += `<br><button onclick="InventoryApp.addTag()">+ Add Tag</button>`;
 
 addTag(){
 
