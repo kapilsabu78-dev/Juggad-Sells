@@ -416,8 +416,15 @@ html += "No data found";
 data.forEach(d=>{
 html += `
 <div style="border-bottom:1px solid #ddd;padding:8px;">
+<b>${d.category} → ${d.tag}</b><br>let rate = (d.cost / d.qty).toFixed(2);
+
+html += `
+<div style="border-bottom:1px solid #ddd;padding:8px;">
 <b>${d.category} → ${d.tag}</b><br>
-Qty: ${d.qty} | ₹${d.cost}
+Qty: ${d.qty} | Total ₹${d.cost}<br>
+Rate: ₹${rate}/pc
+</div>
+`;
 </div>
 `;
 });
