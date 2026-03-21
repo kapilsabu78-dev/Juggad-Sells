@@ -77,6 +77,7 @@ margin:4px;
 
 
 
+
 <div id="invScreen" style="
 display:none;
 position:fixed;
@@ -93,6 +94,18 @@ const InventoryApp = {
 
 category:"",
 tag:"",
+
+if(!localStorage.getItem("tagMap")){
+localStorage.setItem("tagMap", JSON.stringify({
+"Bag":["@purse","@handpurse","@etc"],
+"Toys":["@push","@puzzle","@etc"],
+"Gifts":["@decor","@etc"],
+"Misc":["@etc"]
+}));
+}
+
+
+
 
 tagMap:{
 "Bag":["@purse","@handpurse","@etc"],
@@ -126,7 +139,47 @@ document.getElementById("invScreen").innerHTML=html;
 selectCategory(cat){
 this.category=cat;
 
-let tags=this.tagMap[cat]||["@etc"];
+let tagMap = JSON.parse(localStorage.getItem("tagMap"));
+
+
+
+
+html += `<br><button onclick="InventoryApp.addTag()">+ Add Tag</button>`;
+
+addTag(){
+
+let newTag = prompt("Enter new tag (start with @)");
+
+if(!newTag) return;
+
+let tagMap = JSON.parse(localStorage.getItem("tagMap"));
+
+if(!tagMap[this.category]){
+tagMap[this.category]=["@etc"];
+}
+
+tagMap[this.category].push(newTag);
+
+localStorage.setItem("tagMap", JSON.stringify(tagMap));
+
+alert("Tag added");
+
+this.selectCategory(this.category);
+}
+
+removeTag(tag){
+
+let tagMap = JSON.parse(localStorage.getItem("tagMap"));
+
+tagMap[this.category] = tagMap[this.category].filter(t=>t!==tag);
+
+localStorage.setItem("tagMap", JSON.stringify(tagMap));
+
+alert("Removed");
+
+this.selectCategory(this.category);
+}
+
 
 let html=`<h3>${cat} → Select Tag</h3>`;
 
