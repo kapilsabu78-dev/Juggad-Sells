@@ -965,6 +965,9 @@ document.getElementById("inventoryScreen").innerHTML=html;
 
 save(){
 
+alert("SAVE RUNNING");
+
+
 let rate = Number(document.getElementById("invRate").value);
 let qty = Number(document.getElementById("invQty").value)||1;
 
@@ -993,7 +996,7 @@ cost:total
 }
 
 // history always separate
-let history = JSON.parse(localStorage.getItem("history") ||"[]");
+let history = JSON.parse(localStorage.getItem("history")||"[]");
 
 history.push({
 category:this.category,
