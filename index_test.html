@@ -267,10 +267,6 @@ Discount
 <button onclick="History.view()">History</button>
 
 
-
-<button onclick="checkHistory()">Check History</button>
-</div>
-
 <!-- ITEM POPUP -->
 
 <div id="itemPopup" onclick="outsideTap(event)" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
@@ -865,11 +861,6 @@ text += "\n";
 alert(text);
 }
 
-function checkHistory(){
-let h = localStorage.getItem("history");
-alert(h);
-}
-
 
 // ===== TAG MAP (editable) =====
 if(!localStorage.getItem("tagMap")){
@@ -972,8 +963,6 @@ document.getElementById("inventoryScreen").innerHTML=html;
 
 save(){
 
-alert("SAVE RUNNING");
-
 
 let rate = Number(document.getElementById("invRate").value);
 let qty = Number(document.getElementById("invQty").value)||1;
@@ -1015,9 +1004,6 @@ date:new Date()
 
 localStorage.setItem("inventory",JSON.stringify(data));
 localStorage.setItem("history",JSON.stringify(history));
-
-alert("History length: " + history.length);
-alert("Saved ₹"+total);
 
 this.showCategories();
 }
