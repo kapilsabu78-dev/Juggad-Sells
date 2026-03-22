@@ -267,6 +267,8 @@ Discount
 <button onclick="History.view()">History</button>
 
 
+
+<button onclick="checkHistory()">Check History</button>
 </div>
 
 <!-- ITEM POPUP -->
@@ -861,6 +863,11 @@ text += "\n";
 }
 
 alert(text);
+}
+
+function checkHistory(){
+let h = localStorage.getItem("history");
+alert(h);
 }
 
 
