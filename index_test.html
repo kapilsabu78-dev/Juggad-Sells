@@ -1060,83 +1060,78 @@ document.getElementById("stockScreen").style.display="none";
 
 
 // ===== HISTORY =====
+
 const History = {
 
 view(){
 
-let data = JSON.parse(localStorage.getItem("history")||"[]");
+let data = JSON.parse(localStorage.getItem("history")||[]);
 
-let html="<h2>History</h2><hr>";
+if(data.length===0){
+alert("No history");
+return;
+}
 
-// category buttons
-let cats=[...new Set(data.map(d=>d.category))];
+// reverse for latest first
+let list = data.slice().reverse();
 
-cats.forEach(c=>{
-html+=`<button onclick="History.filterCat('${c}')">${c}</button>`;
+let html = "<h2>History</h2>";
+
+// ===== Monthly total =====
+let monthTotal = 0;
+let currentMonth = new Date().toISOString().slice(0,7);
+
+list.forEach(d=>{
+let m = new Date(d.date).toISOString().slice(0,7);
+if(m===currentMonth){
+monthTotal += d.cost;
+}
 });
 
-html+=`<button onclick="History.view()">All</button><hr>`;
+html += `<b>This Month Total: ₹${monthTotal}</b><hr>`;
 
-data.slice().reverse().forEach((d,i)=>{
+// ===== Group by Date =====
+let lastDate = "";
 
-let rate=(d.cost/d.qty).toFixed(2);
-let date=new Date(d.date).toLocaleString();
+list.forEach((d,i)=>{
 
-html+=`
+let dateObj = new Date(d.date);
+let dateStr = dateObj.toDateString();
+
+if(dateStr !== lastDate){
+html += `<h3>${dateStr}</h3>`;
+lastDate = dateStr;
+}
+
+let rate = (d.cost / d.qty).toFixed(2);
+
+html += `
 <div style="border-bottom:1px solid #ddd;padding:8px;">
 <b>${d.category} → ${d.tag}</b><br>
-Qty: ${d.qty} | ₹${d.cost} | ₹${rate}/pc<br>
-<small>${date}</small><br>
 
-<button onclick="History.del(${i})">Delete</button>
+Bought ${d.qty} pcs @ ₹${rate} = ₹${d.cost}<br>
+
+<small>${dateObj.toLocaleTimeString()}</small><br>
+
+<button onclick="History.del(${data.length-1-i})">Delete</button>
 </div>
 `;
 });
 
-html+=`<br><button onclick="History.close()">Close</button>`;
+html += `<br><button onclick="History.close()">Close</button>`;
 
-let screen=document.getElementById("historyScreen");
-screen.innerHTML=html;
-screen.style.display="block";
+let screen = document.getElementById("historyScreen");
+screen.innerHTML = html;
+screen.style.display = "block";
 },
 
-filterCat(cat){
+del(index){
 
-let data = JSON.parse(localStorage.getItem("history")||"[]");
-
-let filtered=data.filter(d=>d.category===cat);
-
-let html=`<h2>${cat} History</h2><hr>`;
-
-filtered.slice().reverse().forEach((d,i)=>{
-
-let rate=(d.cost/d.qty).toFixed(2);
-let date=new Date(d.date).toLocaleString();
-
-html+=`
-<div style="border-bottom:1px solid #ddd;padding:8px;">
-${d.tag} → Qty:${d.qty} | ₹${d.cost} | ₹${rate}/pc<br>
-<small>${date}</small>
-</div>
-`;
-});
-
-html+=`<br><button onclick="History.view()">Back</button>`;
-
-document.getElementById("historyScreen").innerHTML=html;
-},
-
-del(i){
-
-let data = JSON.parse(localStorage.getItem("history")||"[]");
-
-data.reverse();
+let data = JSON.parse(localStorage.getItem("history")||[]);
 
 if(!confirm("Delete entry?")) return;
 
-data.splice(i,1);
-
-data.reverse();
+data.splice(index,1);
 
 localStorage.setItem("history",JSON.stringify(data));
 
@@ -1147,7 +1142,6 @@ close(){
 document.getElementById("historyScreen").style.display="none";
 }
 };
-
 
 
 renderCategories();
