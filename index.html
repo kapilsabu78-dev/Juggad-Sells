@@ -73,6 +73,159 @@ margin:4px;
 </style>
 </head>
 
+<div id="invScreen" style="
+display:none;
+position:fixed;
+top:0;left:0;right:0;bottom:0;
+background:#fff;
+z-index:999;
+overflow:auto;
+padding:15px;
+"></div>
+
+
+<div id="inventoryScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:999;padding:15px;overflow:auto;"></div>
+
+<div id="stockScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:999;padding:15px;overflow:auto;"></div>
+
+<div id="historyScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:999;padding:15px;overflow:auto;"></div>
+
+
+
+
+<script>
+
+if(!localStorage.getItem("tagMap")){
+localStorage.setItem("tagMap", JSON.stringify({
+"Bag":["@purse","@handpurse","@etc"],
+"Toys":["@push","@puzzle","@etc"],
+"Gifts":["@decor","@etc"],
+"Misc":["@etc"]
+}));
+}
+
+const InventoryApp = {
+
+category:"",
+tag:"",
+
+open(){
+document.getElementById("invScreen").style.display="block";
+this.showCategories();
+},
+
+close(){
+document.getElementById("invScreen").style.display="none";
+},
+
+showCategories(){
+
+let html="<h3>Select Category</h3>";
+
+categories.forEach(c=>{
+html+=`<button onclick="InventoryApp.selectCategory('${c.name}')">${c.name}</button>`;
+});
+
+html+=`<br><br><button onclick="InventoryApp.close()">Close</button>`;
+
+document.getElementById("invScreen").innerHTML=html;
+},
+
+selectCategory(cat){
+
+this.category=cat;
+
+let tagMap = JSON.parse(localStorage.getItem("tagMap"));
+let tags = tagMap[cat] || ["@etc"];
+
+let html=`<h3>${cat} → Select Tag</h3>`;
+
+tags.forEach(t=>{
+html+=`<button onclick="InventoryApp.selectTag('${t}')">${t}</button>`;
+});
+
+html+=`<br><button onclick="InventoryApp.addTag()">+ Add Tag</button>`;
+html+=`<br><br><button onclick="InventoryApp.showCategories()">Back</button>`;
+
+document.getElementById("invScreen").innerHTML=html;
+},
+
+addTag(){
+
+let newTag = prompt("Enter new tag (start with @)");
+
+if(!newTag) return;
+
+let tagMap = JSON.parse(localStorage.getItem("tagMap"));
+
+if(!tagMap[this.category]){
+tagMap[this.category]=["@etc"];
+}
+
+tagMap[this.category].push(newTag);
+
+localStorage.setItem("tagMap", JSON.stringify(tagMap));
+
+alert("Tag added");
+
+this.selectCategory(this.category);
+},
+
+selectTag(tag){
+
+this.tag=tag;
+
+document.getElementById("invScreen").innerHTML=`
+<h3>${this.category} → ${this.tag}</h3>
+
+Rate ₹<br>
+<input type="number" id="invCost"><br><br>
+
+Qty<br>
+<input type="number" id="invQty" value="1"><br><br>
+
+<button onclick="InventoryApp.save()">Save</button>
+<br><br>
+<button onclick="InventoryApp.selectCategory('${this.category}')">Back</button>
+`;
+},
+
+save(){
+
+let rate = Number(document.getElementById("invCost").value);
+let qty = Number(document.getElementById("invQty").value) || 1;
+
+if(!rate){
+alert("Enter rate");
+return;
+}
+
+let totalCost = rate * qty;
+
+let data = JSON.parse(localStorage.getItem("inventory") || "[]");
+
+data.push({
+category:this.category,
+tag:this.tag,
+qty:qty,
+cost:totalCost
+});
+
+localStorage.setItem("inventory", JSON.stringify(data));
+
+alert("Saved ₹" + totalCost);
+
+this.showCategories();
+}
+
+};
+
+
+</script>
+
+
+
+
 <body>
 
 <header>
@@ -109,8 +262,10 @@ Discount
 <button onclick="exportExcel()">Excel</button>
 <button onclick="viewTodayBills()">Bills</button>
 <button onclick="clearBill()">Clear</button>
+<button onclick="Inventory.open()">Inventory</button>
+<button onclick="Stock.view()">Stock</button>
+<button onclick="History.view()">History</button>
 
-</div>
 
 <!-- ITEM POPUP -->
 
@@ -565,6 +720,426 @@ document.getElementById("round").checked=false;
 renderBill();
 
 }
+
+let tagMap = {
+  "Bag": ["@purse","@handpurse","@sag","@treking","@luggage","@trolley","@etc"],
+  "Toys": ["@push","@puzzle","@gadgets","@rideons","@soft&dolls","@sports","@activity","@etc"],
+  "Gifts": ["@decor","@premium","@festival","@etc"],
+  "Cosmetics": ["@daily","@premium","@etc"],
+  "Jewellery": ["@set","@single","@etc"],
+  "Stationary": ["@pen","@notebook","@etc"],
+  "Home Care": ["@kitchen","@decor","@etc"],
+  "Events": ["@birthday","@wedding","@etc"],
+  "Misc": ["@etc"]
+};
+
+
+function openInventory(){
+  selectCategory();
+}
+
+function selectCategory(){
+
+let cat = prompt("Enter Category:\nBag, Gifts, Toys, Events, Cosmetics, Jewellery, Stationary, Home Care, Misc");
+
+if(!cat) return;
+
+selectTag(cat);
+}
+
+function selectTag(cat){
+
+let tags = tagMap[cat] || ["@etc"];
+
+let tag = prompt("Select Tag:\n"+tags.join(", "));
+
+if(!tag){
+let confirmEtc = confirm("No tag selected. Assign @etc?");
+if(confirmEtc) tag="@etc";
+else return selectTag(cat);
+}
+
+enterDetails(cat, tag);
+}
+
+function enterDetails(cat, tag){
+
+let cost = Number(prompt("Enter Total Cost"));
+if(!cost) return;
+
+let qty = Number(prompt("Enter Quantity")) || 1;
+
+saveInventory(cat, tag, cost, qty);
+}
+
+
+function saveInventory(cat, tag, cost, qty){
+
+let data = JSON.parse(localStorage.getItem("inventory") || "[]");
+
+// find existing
+let existing = data.find(d => d.category===cat && d.tag===tag);
+
+if(existing){
+
+let merge = confirm(
+"Existing:\n"+cat+" "+tag+
+"\nQty:"+existing.qty+" Cost:"+existing.cost+
+"\n\nMerge?"
+);
+
+if(merge){
+existing.qty += qty;
+existing.cost += cost;
+}else{
+data.push({
+category:cat,
+tag:tag,
+qty:qty,
+cost:cost,
+date:new Date()
+});
+}
+
+}else{
+data.push({
+category:cat,
+tag:tag,
+qty:qty,
+cost:cost,
+date:new Date()
+});
+}
+
+localStorage.setItem("inventory", JSON.stringify(data));
+
+alert("Saved "+cat+" "+tag+" Qty:"+qty);
+}
+
+
+function viewStock(){
+
+let data = JSON.parse(localStorage.getItem("inventory") || "[]");
+
+if(data.length===0){
+alert("No inventory");
+return;
+}
+
+let map = {};
+
+data.forEach(d=>{
+if(!map[d.category]){
+map[d.category] = {qty:0, cost:0, tags:{}};
+}
+
+map[d.category].qty += d.qty;
+map[d.category].cost += d.cost;
+
+if(!map[d.category].tags[d.tag]){
+map[d.category].tags[d.tag] = {qty:0, cost:0};
+}
+
+map[d.category].tags[d.tag].qty += d.qty;
+map[d.category].tags[d.tag].cost += d.cost;
+
+});
+
+let text = "";
+
+for(let cat in map){
+
+text += cat+" → "+map[cat].qty+" → ₹"+map[cat].cost+"\n";
+
+for(let tag in map[cat].tags){
+text += "   "+tag+" → "+map[cat].tags[tag].qty+" → ₹"+map[cat].tags[tag].cost+"\n";
+}
+
+text += "\n";
+}
+
+alert(text);
+}
+
+
+// ===== TAG MAP (editable) =====
+if(!localStorage.getItem("tagMap")){
+localStorage.setItem("tagMap", JSON.stringify({
+"Bag":["@purse","@handpurse","@etc"],
+"Toys":["@push","@puzzle","@rideons","@etc"],
+"Gifts":["@decor","@etc"],
+"Misc":["@etc"]
+}));
+}
+
+// ===== INVENTORY =====
+const Inventory = {
+
+category:"",
+tag:"",
+
+open(){
+document.getElementById("inventoryScreen").style.display="block";
+this.showCategories();
+},
+
+close(){
+document.getElementById("inventoryScreen").style.display="none";
+},
+
+showCategories(){
+
+let html="<h3>Select Category</h3>";
+
+categories.forEach(c=>{
+html+=`<button onclick="Inventory.selectCategory('${c.name}')">${c.name}</button>`;
+});
+
+html+=`<br><br><button onclick="Inventory.close()">Close</button>`;
+
+document.getElementById("inventoryScreen").innerHTML=html;
+},
+
+selectCategory(cat){
+
+this.category=cat;
+
+let tagMap = JSON.parse(localStorage.getItem("tagMap"));
+let tags = tagMap[cat] || ["@etc"];
+
+let html=`<h3>${cat} → Select Tag</h3>`;
+
+tags.forEach(t=>{
+html+=`<button onclick="Inventory.selectTag('${t}')">${t}</button>`;
+});
+
+// add new tag
+html+=`<br><button onclick="Inventory.addTag()">+ Add Tag</button>`;
+
+html+=`<br><br><button onclick="Inventory.showCategories()">Back</button>`;
+
+document.getElementById("inventoryScreen").innerHTML=html;
+},
+
+addTag(){
+
+let newTag = prompt("Enter tag (start with @)");
+if(!newTag) return;
+
+let tagMap = JSON.parse(localStorage.getItem("tagMap"));
+
+if(!tagMap[this.category]){
+tagMap[this.category]=["@etc"];
+}
+
+tagMap[this.category].push(newTag);
+
+localStorage.setItem("tagMap", JSON.stringify(tagMap));
+
+this.selectCategory(this.category);
+},
+
+selectTag(tag){
+
+this.tag=tag;
+
+let html=`
+<h3>${this.category} → ${this.tag}</h3>
+
+Rate ₹<br>
+<input type="number" id="invRate"><br><br>
+
+Qty<br>
+<input type="number" id="invQty" value="1"><br><br>
+
+<button onclick="Inventory.save()">Save</button>
+<br><br>
+
+<button onclick="Inventory.selectCategory('${this.category}')">Back</button>
+`;
+
+document.getElementById("inventoryScreen").innerHTML=html;
+},
+
+save(){
+
+
+let rate = Number(document.getElementById("invRate").value);
+let qty = Number(document.getElementById("invQty").value)||1;
+
+if(!rate){
+alert("Enter rate");
+return;
+}
+
+let total = rate * qty;
+
+let data = JSON.parse(localStorage.getItem("inventory")||"[]");
+
+// merge
+let existing = data.find(d=>d.category===this.category && d.tag===this.tag);
+
+if(existing){
+existing.qty += qty;
+existing.cost += total;
+}else{
+data.push({
+category:this.category,
+tag:this.tag,
+qty:qty,
+cost:total
+});
+}
+
+// history always separate
+let history = JSON.parse(localStorage.getItem("history")||"[]");
+
+history.push({
+category:this.category,
+tag:this.tag,
+qty:qty,
+cost:total,
+date:new Date()
+});
+
+localStorage.setItem("inventory",JSON.stringify(data));
+localStorage.setItem("history",JSON.stringify(history));
+
+this.showCategories();
+}
+};
+
+
+// ===== STOCK =====
+const Stock = {
+
+view(){
+
+let data = JSON.parse(localStorage.getItem("inventory")||"[]");
+
+let grouped={};
+
+data.forEach(d=>{
+if(!grouped[d.category]) grouped[d.category]=[];
+grouped[d.category].push(d);
+});
+
+let html="<h2>Stock</h2>";
+
+for(let cat in grouped){
+
+html+=`<h3>${cat}</h3>`;
+
+grouped[cat].forEach(d=>{
+
+let rate=(d.cost/d.qty).toFixed(2);
+
+html+=`
+<div style="padding-left:10px;">
+${d.tag} → Qty: ${d.qty} | ₹${d.cost} | ₹${rate}/pc
+</div>
+`;
+});
+
+}
+
+html+=`<br><button onclick="Stock.close()">Close</button>`;
+
+let screen=document.getElementById("stockScreen");
+screen.innerHTML=html;
+screen.style.display="block";
+},
+
+close(){
+document.getElementById("stockScreen").style.display="none";
+}
+};
+
+
+// ===== HISTORY =====
+
+const History = {
+
+view(){
+
+let data = JSON.parse(localStorage.getItem("history") || "[]");
+
+if(data.length===0){
+alert("No history");
+return;
+}
+
+// reverse for latest first
+let list = data.slice().reverse();
+
+let html = "<h2>History</h2>";
+
+// ===== Monthly total =====
+let monthTotal = 0;
+let currentMonth = new Date().toISOString().slice(0,7);
+
+list.forEach(d=>{
+let m = new Date(d.date).toISOString().slice(0,7);
+if(m===currentMonth){
+monthTotal += d.cost;
+}
+});
+
+html += `<b>This Month Total: ₹${monthTotal}</b><hr>`;
+
+// ===== Group by Date =====
+let lastDate = "";
+
+list.forEach((d,i)=>{
+
+let dateObj = new Date(d.date);
+let dateStr = dateObj.toDateString();
+
+if(dateStr !== lastDate){
+html += `<h3>${dateStr}</h3>`;
+lastDate = dateStr;
+}
+
+let rate = (d.cost / d.qty).toFixed(2);
+
+html += `
+<div style="border-bottom:1px solid #ddd;padding:8px;">
+<b>${d.category} → ${d.tag}</b><br>
+
+Bought ${d.qty} pcs @ ₹${rate} = ₹${d.cost}<br>
+
+<small>${dateObj.toLocaleTimeString()}</small><br>
+
+<button onclick="History.del(${data.length-1-i})">Delete</button>
+</div>
+`;
+});
+
+html += `<br><button onclick="History.close()">Close</button>`;
+
+let screen = document.getElementById("historyScreen");
+screen.innerHTML = html;
+screen.style.display = "block";
+},
+
+del(index){
+
+let data = JSON.parse(localStorage.getItem("history")||[]);
+
+if(!confirm("Delete entry?")) return;
+
+data.splice(index,1);
+
+localStorage.setItem("history",JSON.stringify(data));
+
+this.view();
+},
+
+close(){
+document.getElementById("historyScreen").style.display="none";
+}
+};
+
 
 renderCategories();
 updateDashboard();
