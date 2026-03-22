@@ -1065,7 +1065,7 @@ const History = {
 
 view(){
 
-let data = JSON.parse(localStorage.getItem("history")||[]);
+let data = JSON.parse(localStorage.getItem("history") || "[]");
 
 if(data.length===0){
 alert("No history");
