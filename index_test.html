@@ -212,7 +212,8 @@ data.push({
 category:this.category,
 tag:this.tag,
 qty:qty,
-cost:totalCost
+cost:totalCost, 
+note:note
 });
 
 localStorage.setItem("inventory", JSON.stringify(data));
@@ -1003,6 +1004,7 @@ category:this.category,
 tag:this.tag,
 qty:qty,
 cost:total,
+note:note, 
 date:new Date()
 });
 
@@ -1111,6 +1113,8 @@ html += `
 <b>${d.category} → ${d.tag}</b><br>
 
 Bought ${d.qty} pcs @ ₹${rate} = ₹${d.cost}<br>
+
+${d.note ? "<i>Note: " + d.note + "</i><br>" : ""}
 
 <small>${dateObj.toLocaleTimeString()}</small><br>
 
