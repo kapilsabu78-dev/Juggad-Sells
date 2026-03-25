@@ -193,11 +193,14 @@ Note<br>
 `;
 },
 
+
 save(){
+
+alert("SAVE CLICKED");
 
 let rate = Number(document.getElementById("invCost").value);
 let qty = Number(document.getElementById("invQty").value) || 1;
-let note = document.getElementById("invNote").value || "";
+let note = document.getElementById("invNote")?.value || "";
 
 if(!rate){
 alert("Enter rate");
@@ -205,6 +208,7 @@ return;
 }
 
 let totalCost = rate * qty;
+
 
 let data = JSON.parse(localStorage.getItem("inventory") || "[]");
 
@@ -282,6 +286,7 @@ Discount
 
 Rate  
 <input type="tel" id="rateInput">
+
 
 <br><br>
 
