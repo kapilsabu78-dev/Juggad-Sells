@@ -294,6 +294,8 @@ Discount
 
 <h3 id="total">Total: ₹0</h3>
 
+<button onclick="TestInv.open()">Test Inventory</button>
+
 <button onclick="manualSave()">Save</button>
 <button onclick="printBill()">Print</button>
 <button onclick="openPhonePopup()">WhatsApp</button>
@@ -1183,6 +1185,64 @@ document.getElementById("historyScreen").style.display="none";
 };
 
 
+
+const TestInv = {
+
+open(){
+let html = "<h3>Test Inventory</h3>";
+
+html += "Category<br>";
+html += '<input id="tCat"><br><br>';
+
+html += "Tag<br>";
+html += '<input id="tTag"><br><br>';
+
+html += "Rate<br>";
+html += '<input id="tRate" type="number"><br><br>';
+
+html += "Qty<br>";
+html += '<input id="tQty" type="number" value="1"><br><br>';
+
+html += "Note<br>";
+html += '<input id="tNote"><br><br>';
+
+html += '<button onclick="TestInv.save()">Save</button>';
+
+document.body.innerHTML = html;
+},
+
+save(){
+
+let cat = document.getElementById("tCat").value;
+let tag = document.getElementById("tTag").value;
+let rate = Number(document.getElementById("tRate").value);
+let qty = Number(document.getElementById("tQty").value);
+let note = document.getElementById("tNote").value;
+
+if(!rate){
+alert("rate missing");
+return;
+}
+
+let total = rate * qty;
+
+// inventory
+let inv = JSON.parse(localStorage.getItem("inventory") || "[]");
+
+inv.push({cat,tag,qty,cost:total,note});
+
+localStorage.setItem("inventory", JSON.stringify(inv));
+
+// history
+let hist = JSON.parse(localStorage.getItem("history") || "[]");
+
+hist.push({cat,tag,qty,cost:total,note,date:new Date()});
+
+localStorage.setItem("history", JSON.stringify(hist));
+
+alert("Saved OK");
+}
+};
 renderCategories();
 updateDashboard();
 
