@@ -175,26 +175,24 @@ this.selectCategory(this.category);
 
 selectTag(tag){
 
-this.tag=tag;
+this.tag = tag;
 
-document.getElementById("invScreen").innerHTML=`
-<h3>${this.category} → ${this.tag}</h3>
+let html = "<h3>" + this.category + " → " + this.tag + "</h3>";
 
-Rate ₹<br>
-<input type="number" id="invCost"><br><br>
+html += "Rate ₹<br>";
+html += '<input type="number" id="invCost"><br><br>';
 
-Qty<br>
-<input type="number" id="invQty" value="1"><br><br>
+html += "Qty<br>";
+html += '<input type="number" id="invQty" value="1"><br><br>';
 
-Note<br>
-<input type="text" id="invNote" placeholder="optional note"><br><br>
+html += "Note<br>";
+html += '<input type="text" id="invNote" placeholder="optional note"><br><br>';
 
-<button onclick="InventoryApp.save()">Save</button>
-<br><br>
-<button onclick="InventoryApp.selectCategory('${this.category}')">Back</button>
-`;
-},
+html += '<button onclick="InventoryApp.save()">Save</button><br><br>';
+html += '<button onclick="InventoryApp.selectCategory(\'' + this.category + '\')">Back</button>';
 
+document.getElementById("invScreen").innerHTML = html;
+}
 
 save(){
 
