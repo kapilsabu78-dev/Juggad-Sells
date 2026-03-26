@@ -966,6 +966,7 @@ save(){
 
 let rate = Number(document.getElementById("invRate").value);
 let qty = Number(document.getElementById("invQty").value)||1;
+let note = document.getElementById("invNote")?.value || "";
 
 if(!rate){
 alert("Enter rate");
@@ -999,6 +1000,7 @@ category:this.category,
 tag:this.tag,
 qty:qty,
 cost:total,
+note: note,
 date:new Date()
 });
 
@@ -1107,6 +1109,9 @@ html += `
 <b>${d.category} → ${d.tag}</b><br>
 
 Bought ${d.qty} pcs @ ₹${rate} = ₹${d.cost}<br>
+
+${d.note ? "<small>Note: "+d.note+"</small><br>" : ""}
+
 
 <small>${dateObj.toLocaleTimeString()}</small><br>
 
