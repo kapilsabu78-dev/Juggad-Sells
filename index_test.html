@@ -966,7 +966,6 @@ save(){
 
 let rate = Number(document.getElementById("invRate").value);
 let qty = Number(document.getElementById("invQty").value)||1;
-let note = document.getElementById("invNote")?.value || "";
 
 if(!rate){
 alert("Enter rate");
@@ -1000,7 +999,6 @@ category:this.category,
 tag:this.tag,
 qty:qty,
 cost:total,
-note: note,
 date:new Date()
 });
 
@@ -1035,30 +1033,6 @@ html+=`<h3>${cat}</h3>`;
 grouped[cat].forEach(d=>{
 
 let rate=(d.cost/d.qty).toFixed(2);
-
-onclick="Stock.edit(${i})"
-
-
-edit(i){
-
-let data = JSON.parse(localStorage.getItem("inventory") || "[]");
-
-let item = data[i];
-
-let newQty = prompt("Qty", item.qty);
-if(newQty===null) return;
-
-let newCost = prompt("Total Cost", item.cost);
-if(newCost===null) return;
-
-item.qty = Number(newQty);
-item.cost = Number(newCost);
-
-localStorage.setItem("inventory", JSON.stringify(data));
-
-this.view();
-}
-
 
 html+=`
 <div style="padding-left:10px;">
@@ -1116,15 +1090,10 @@ html += `<b>This Month Total: ₹${monthTotal}</b><hr>`;
 // ===== Group by Date =====
 let lastDate = "";
 
-<input id="hFilter" placeholder="filter category/tag">
-
 list.forEach((d,i)=>{
 
 let dateObj = new Date(d.date);
 let dateStr = dateObj.toDateString();
-let f = document.getElementById("hFilter")?.value?.toLowerCase() || "";
-
-if(f && !(d.category.toLowerCase().includes(f) || d.tag.toLowerCase().includes(f))) return;
 
 if(dateStr !== lastDate){
 html += `<h3>${dateStr}</h3>`;
@@ -1138,9 +1107,6 @@ html += `
 <b>${d.category} → ${d.tag}</b><br>
 
 Bought ${d.qty} pcs @ ₹${rate} = ₹${d.cost}<br>
-
-${d.note ? "<small>Note: "+d.note+"</small><br>" : ""}
-
 
 <small>${dateObj.toLocaleTimeString()}</small><br>
 
