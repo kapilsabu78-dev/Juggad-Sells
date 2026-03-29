@@ -701,9 +701,9 @@ new Date().toLocaleDateString()+" • "+new Date().toLocaleTimeString()+"\n\n"+
 billText+
 totalSection;
 
-let url="https://wa.me/91"+phone+"?text="+encodeURIComponent(message);
+let url = "intent://send?phone=91"+phone+"&text="+encodeURIComponent(message)+"#Intent;scheme=whatsapp;package=com.whatsapp.w4b;end;";
 
-window.open(url,"_blank");
+window.location.href = url;
 
 document.getElementById("phonePopup").style.display="none";
 
