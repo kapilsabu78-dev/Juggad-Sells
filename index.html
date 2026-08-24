@@ -70,6 +70,26 @@ padding:8px 10px;
 margin:4px;
 }
 
+.smallBox{
+background:#f7f7f7;
+border:1px solid #ddd;
+border-radius:8px;
+padding:10px;
+margin:8px 0;
+}
+
+.good{
+background:#eaf7ea;
+}
+
+.warn{
+background:#fff4e5;
+}
+
+.error{
+background:#fdeaea;
+}
+
 </style>
 </head>
 
@@ -83,15 +103,15 @@ overflow:auto;
 padding:15px;
 "></div>
 
-
 <div id="inventoryScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:999;padding:15px;overflow:auto;"></div>
 
 <div id="stockScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:999;padding:15px;overflow:auto;"></div>
 
 <div id="historyScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:999;padding:15px;overflow:auto;"></div>
 
+<div id="pricingScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:999;padding:15px;overflow:auto;"></div>
 
-
+<div id="recordsScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#fff;z-index:999;padding:15px;overflow:auto;"></div>
 
 <script>
 
@@ -100,7 +120,7 @@ localStorage.setItem("tagMap", JSON.stringify({
 "Bag":["@purse","@handpurse","@etc"],
 "Toys":["@push","@puzzle","@etc"],
 "Gifts":["@decor","@etc"],
-"Misc":["@etc"]
+"Object":["@etc"]
 }));
 }
 
@@ -220,11 +240,7 @@ this.showCategories();
 
 };
 
-
 </script>
-
-
-
 
 <body>
 
@@ -246,26 +262,28 @@ Today's Sales ₹0 | Bills 0
 <hr>
 
 Discount  
-<input type="number" id="discount" value="0">
+<input type="number" id="discount" value="0" min="0" step="0.01" oninput="renderBill()">
 
 <br>
 
 <label>
-<input type="checkbox" id="round"> Round Off
+<input type="checkbox" id="round" onchange="renderBill()"> Round Off
 </label>
 
 <h3 id="total">Total: ₹0</h3>
+
+<div id="discountStatus"></div>
 
 <button onclick="manualSave()">Save</button>
 <button onclick="printBill()">Print</button>
 <button onclick="openPhonePopup()">WhatsApp</button>
 <button onclick="exportExcel()">Excel</button>
-<button onclick="viewTodayBills()">Bills</button>
+<button onclick="Records.open()">Bills</button>
 <button onclick="clearBill()">Clear</button>
 <button onclick="Inventory.open()">Inventory</button>
 <button onclick="Stock.view()">Stock</button>
 <button onclick="History.view()">History</button>
-
+<button onclick="Pricing.open()">Pricing</button>
 
 <!-- ITEM POPUP -->
 
@@ -314,12 +332,279 @@ let categories=[
 {name:"Jewellery",icon:"💍"},
 {name:"Stationary",icon:"✏️"},
 {name:"Home Care",icon:"🧴"},
-{name:"Misc",icon:"🧾"}
+{name:"Object",icon:"🧾"}
 ];
 
 let bill=[];
 let billSaved=false;
 let billNo=localStorage.getItem("billNo")||1;
+
+/* =========================================================
+   PRICING RULES
+   ========================================================= */
+
+const pricingRules = {
+A:{
+name:"A",
+products:["Toys","Gifts"],
+cuts:[5],
+maxDiscount:15
+},
+B:{
+name:"B",
+products:["Bag","Events","Jewellery"],
+cuts:[10],
+maxDiscount:20
+},
+C:{
+name:"C",
+products:["Stationary","Home Care"],
+cuts:[10,10],
+maxDiscount:15
+},
+D:{
+name:"D",
+products:["Cosmetics"],
+cuts:[10,10,10],
+maxDiscount:10
+},
+E:{
+name:"E",
+products:["Object"],
+cuts:[],
+maxDiscount:null
+}
+};
+
+function getPricingCategory(productCategory){
+
+for(let key in pricingRules){
+
+if(pricingRules[key].products.includes(productCategory)){
+return key;
+}
+
+}
+
+return "E";
+}
+
+function getPricingRule(productCategory){
+return pricingRules[getPricingCategory(productCategory)];
+}
+
+function applyHaircuts(top,cuts){
+
+let value=top;
+
+cuts.forEach(percent=>{
+value=value*(1-percent/100);
+});
+
+return value;
+}
+
+/*
+  Find the next clean commercial price at or above the exact
+  shown rate while staying within the user's ±4% allowance.
+  Preference is larger, cleaner shop increments first.
+*/
+function getCleanShownRate(exact){
+
+if(exact<=0) return 0;
+
+if(Math.abs(exact-Math.round(exact))<0.000001){
+exact=Math.round(exact);
+}
+
+/* already clean enough */
+let preferredSteps=[100,50,20,10,5,1];
+
+for(let step of preferredSteps){
+
+let candidate=Math.ceil(exact/step)*step;
+
+if(candidate<exact) continue;
+
+let error=(candidate-exact)/exact;
+
+if(error<=0.04+0.0000001){
+return candidate;
+}
+
+}
+
+/* fallback: exact value rounded to 2 decimals */
+return Math.round(exact*100)/100;
+}
+
+function calculatePrice(purchase,cat){
+
+purchase=Number(purchase)||0;
+
+let rule=pricingRules[cat];
+
+if(!rule) rule=pricingRules.E;
+
+if(rule.name==="E"){
+
+return {
+category:"E",
+purchase:purchase,
+top:null,
+exact:null,
+shown:purchase,
+cuts:[],
+error:0,
+maxDiscount:null
+};
+
+}
+
+let top=purchase*2;
+let exact=applyHaircuts(top,rule.cuts);
+let shown=getCleanShownRate(exact);
+let error=exact ? ((shown-exact)/exact)*100 : 0;
+
+return {
+category:rule.name,
+purchase:purchase,
+top:top,
+exact:exact,
+shown:shown,
+cuts:rule.cuts,
+error:error,
+maxDiscount:rule.maxDiscount
+};
+
+}
+
+/* =========================================================
+   PRICING CALCULATOR UI
+   ========================================================= */
+
+const Pricing = {
+
+open(){
+
+let html=`
+<h2>Pricing Calculator</h2>
+
+<div class="smallBox">
+<b>Purchase → Top → Category haircut → Exact shown rate → Clean shown rate</b><br>
+Clean shown rate must stay within <b>4%</b> above the calculated rate.
+</div>
+
+Purchase Price ₹<br>
+<input type="number" id="pricePurchase" step="0.01" oninput="Pricing.calculate()">
+
+<br><br>
+
+Category<br>
+<select id="priceCategory" onchange="Pricing.calculate()">
+<option value="A">A — Toys, Gifts</option>
+<option value="B">B — Bags, Events, Jewellery</option>
+<option value="C">C — Stationary, Home Care</option>
+<option value="D">D — Cosmetics</option>
+<option value="E">E — Object</option>
+</select>
+
+<div id="priceResult"></div>
+
+<br>
+<button onclick="Pricing.close()">Close</button>
+`;
+
+let screen=document.getElementById("pricingScreen");
+screen.innerHTML=html;
+screen.style.display="block";
+
+document.getElementById("pricePurchase").focus();
+
+},
+
+close(){
+document.getElementById("pricingScreen").style.display="none";
+},
+
+calculate(){
+
+let purchase=Number(document.getElementById("pricePurchase").value)||0;
+let cat=document.getElementById("priceCategory").value;
+let result=document.getElementById("priceResult");
+
+if(!purchase){
+result.innerHTML="";
+return;
+}
+
+let r=calculatePrice(purchase,cat);
+
+if(cat==="E"){
+
+result.innerHTML=`
+<div class="smallBox good">
+<b>Category E — Object</b><br><br>
+Entered Rate / Shown Rate: <b>₹${formatMoney(r.shown)}</b><br>
+No automatic Top or haircut is applied.
+</div>
+`;
+
+return;
+}
+
+let cutsHTML="";
+
+let running=r.top;
+
+r.cuts.forEach((p,index)=>{
+running=running*(1-p/100);
+cutsHTML+=`−${p}% → ₹${formatMoney(running)}<br>`;
+});
+
+let statusClass=r.error<=4 ? "good" : "error";
+
+result.innerHTML=`
+<div class="smallBox">
+Purchase Cost: <b>₹${formatMoney(r.purchase)}</b><br>
+Top (×2): <b>₹${formatMoney(r.top)}</b>
+</div>
+
+<div class="smallBox">
+<b>Category ${r.category}</b><br><br>
+${cutsHTML}
+Exact Calculated Rate: <b>₹${formatMoney(r.exact)}</b>
+</div>
+
+<div class="smallBox ${statusClass}">
+<b>RECOMMENDED SHOWN RATE: ₹${formatMoney(r.shown)}</b><br>
+Difference from exact: ${r.error.toFixed(2)}%<br>
+4% allowance: ${r.error<=4 ? "Within limit ✓" : "Outside limit"}
+</div>
+
+<div class="smallBox">
+Maximum discount for Category ${r.category}: <b>${r.maxDiscount}%</b><br>
+At shown rate ₹${formatMoney(r.shown)}, maximum discount value:
+<b>₹${formatMoney(r.shown*r.maxDiscount/100)}</b>
+</div>
+`;
+
+}
+
+};
+
+function formatMoney(value){
+
+return Number(value).toLocaleString("en-IN",{
+minimumFractionDigits:0,
+maximumFractionDigits:2
+});
+
+}
+
+/* =========================================================
+   BILLING
+   ========================================================= */
 
 function renderCategories(){
 
@@ -375,6 +660,165 @@ document.getElementById("itemPopup").style.display="none";
 
 }
 
+/*
+  Maximum permitted discount for the current bill.
+  A-D are category-controlled.
+  E remains manually controlled because it has no pricing formula.
+*/
+function getBillDiscountLimit(){
+
+let limit=0;
+
+bill.forEach(item=>{
+
+let rule=getPricingRule(item.cat);
+let line=item.rate*item.qty;
+
+if(rule.maxDiscount===null){
+/* Category E has no automatic pricing/discount cap. */
+limit+=line;
+return;
+}
+
+limit+=line*(rule.maxDiscount/100);
+
+});
+
+return limit;
+}
+
+function getDiscountBreakdown(discount){
+
+let breakdown=[];
+let controlledSubtotal=0;
+let totalSubtotal=0;
+
+bill.forEach(item=>{
+totalSubtotal+=item.rate*item.qty;
+});
+
+let requested=Number(discount)||0;
+
+if(!requested){
+return {
+breakdown:[],
+limit:getBillDiscountLimit(),
+valid:true
+};
+}
+
+/*
+  Allocate the requested bill discount proportionally across
+  category-controlled lines for display/validation.
+  E is excluded from automatic limit control.
+*/
+let remaining=requested;
+
+let controlledItems=bill.filter(item=>getPricingRule(item.cat).maxDiscount!==null);
+
+let controlledTotal=controlledItems.reduce((sum,item)=>sum+(item.rate*item.qty),0);
+
+controlledItems.forEach(item=>{
+
+let line=item.rate*item.qty;
+let share=controlledTotal ? requested*(line/controlledTotal) : 0;
+let rule=getPricingRule(item.cat);
+let max=line*rule.maxDiscount/100;
+
+breakdown.push({
+category:item.cat,
+categoryCode:rule.name,
+line:line,
+requested:share,
+max:max
+});
+
+controlledSubtotal+=line;
+
+});
+
+let limit=getBillDiscountLimit();
+
+return {
+breakdown:breakdown,
+limit:limit,
+valid:requested<=limit+0.000001
+};
+
+}
+
+function renderDiscountStatus(discount){
+
+let box=document.getElementById("discountStatus");
+
+if(!box) return;
+
+if(!bill.length || !discount){
+box.innerHTML="";
+return;
+}
+
+let result=getDiscountBreakdown(discount);
+
+if(result.valid){
+
+let text="Discount allowed ✓";
+
+if(result.breakdown.length){
+text+=" | Max for controlled categories: ₹"+formatMoney(result.limit);
+}
+
+box.innerHTML=`<div class="smallBox good">${text}</div>`;
+
+}else{
+
+box.innerHTML=`
+<div class="smallBox error">
+<b>Discount exceeds category limit.</b><br>
+Maximum allowed: ₹${formatMoney(result.limit)}<br>
+Requested: ₹${formatMoney(discount)}
+</div>
+`;
+
+}
+
+}
+
+function isDiscountAllowed(){
+
+let discount=Number(document.getElementById("discount").value)||0;
+
+if(discount<0){
+alert("Discount cannot be negative.");
+return false;
+}
+
+if(!discount){
+return true;
+}
+
+if(!bill.length){
+alert("Add items first.");
+return false;
+}
+
+let result=getDiscountBreakdown(discount);
+
+if(!result.valid){
+
+alert(
+"Discount exceeds category limit.\n\n"+
+"Maximum allowed: ₹"+formatMoney(result.limit)+
+"\nRequested: ₹"+formatMoney(discount)
+);
+
+return false;
+}
+
+return true;
+
+}
+
 function renderBill(){
 
 let itemsDiv=document.getElementById("items");
@@ -387,9 +831,14 @@ bill.forEach((item,index)=>{
 let line=item.rate*item.qty;
 total+=line;
 
+let rule=getPricingRule(item.cat);
+
 let div=document.createElement("div");
 
-div.innerText=item.cat+" "+item.rate+" × "+item.qty+" = "+line;
+div.innerText=
+item.cat+" "+item.rate+" × "+item.qty+
+" = "+line+
+" ["+rule.name+"]";
 
 div.onclick=function(){
 editOptions(index);
@@ -403,26 +852,28 @@ let discount=Number(document.getElementById("discount").value)||0;
 
 let finalTotal=total-discount;
 
+if(finalTotal<0){
+finalTotal=0;
+}
+
 if(document.getElementById("round").checked){
 finalTotal=Math.round(finalTotal);
 }
-
-
 
 let display="";
 
 if(discount>0){
 display=
-"Subtotal ₹"+total+
-"<br>Discount ₹"+discount+
-"<br><b>Total ₹"+finalTotal+"</b>";
+"Subtotal ₹"+formatMoney(total)+
+"<br>Discount ₹"+formatMoney(discount)+
+"<br><b>Total ₹"+formatMoney(finalTotal)+"</b>";
 }else{
-display="<b>Total ₹"+total+"</b>";
+display="<b>Total ₹"+formatMoney(total)+"</b>";
 }
 
 document.getElementById("total").innerHTML=display;
 
-
+renderDiscountStatus(discount);
 
 }
 
@@ -453,17 +904,97 @@ renderBill();
 
 }
 
-function saveBill(){
+function getPurchaseCostEstimate(rate, productCategory){
 
-if(billSaved) return;
+let rule=getPricingRule(productCategory);
+
+if(!rule || rule.name==="E") return null;
+
+let factor=2;
+rule.cuts.forEach(percent=>{
+factor*=1-(percent/100);
+});
+
+if(!factor) return null;
+
+return Number(rate)/factor;
+}
+
+function getPricingSnapshot(item){
+
+let rule=getPricingRule(item.cat);
+
+if(!rule || rule.name==="E"){
+return {
+categoryCode:"E",
+categoryName:"Object",
+cuts:[],
+maxDiscount:null,
+purchaseCostPerUnit:null,
+purchaseCostTotal:null
+};
+}
+
+let costPerUnit=getPurchaseCostEstimate(item.rate,item.cat);
+
+return {
+categoryCode:rule.name,
+categoryName:item.cat,
+cuts:rule.cuts.slice(),
+maxDiscount:rule.maxDiscount,
+purchaseCostPerUnit:costPerUnit,
+purchaseCostTotal:costPerUnit*item.qty
+};
+}
+
+function saveBill(customerPhone=""){
+
+if(billSaved){
+/* If WhatsApp number is supplied after a previous save, attach it. */
+if(customerPhone){
+let bills=JSON.parse(localStorage.getItem("bills")||"[]");
+let last=bills[bills.length-1];
+if(last && last.billNo===String(billNo-1).padStart(4,'0')){
+last.customerPhone=customerPhone;
+localStorage.setItem("bills",JSON.stringify(bills));
+}
+}
+return true;
+}
+
+if(!bill.length){
+return false;
+}
+
+if(!isDiscountAllowed()){
+return false;
+}
 
 let bills=JSON.parse(localStorage.getItem("bills")||"[]");
+let currentBillNo=String(billNo).padStart(4,'0');
+let now=new Date().toISOString();
+let discount=Number(document.getElementById("discount").value)||0;
+let subtotal=bill.reduce((sum,item)=>sum+(item.rate*item.qty),0);
+let finalTotal=Math.max(0,subtotal-discount);
+
+if(document.getElementById("round").checked){
+finalTotal=Math.round(finalTotal);
+}
+
+let storedItems=bill.map(item=>({
+...item,
+pricingSnapshot:getPricingSnapshot(item)
+}));
 
 bills.push({
-billNo:billNo.toString().padStart(4,'0'),
-date:new Date().toISOString(),
-items:bill,
-discount:Number(document.getElementById("discount").value)
+billNo:currentBillNo,
+date:now,
+items:storedItems,
+discount:discount,
+subtotal:subtotal,
+finalTotal:finalTotal,
+rounded:document.getElementById("round").checked,
+customerPhone:customerPhone || ""
 });
 
 localStorage.setItem("bills",JSON.stringify(bills));
@@ -475,12 +1006,26 @@ billSaved=true;
 
 updateDashboard();
 
+return true;
+
 }
 
 function manualSave(){
 
+if(!bill.length){
+alert("Add items first.");
+return;
+}
+
+if(!isDiscountAllowed()){
+return;
+}
+
 saveBill();
+
+if(billSaved){
 alert("Bill Saved");
+}
 
 }
 
@@ -492,6 +1037,7 @@ let today=new Date().toDateString();
 
 let sales=0;
 let count=0;
+let knownProfit=0;
 
 bills.forEach(b=>{
 
@@ -506,59 +1052,186 @@ sales+=i.rate*i.qty;
 });
 
 sales-=b.discount||0;
+knownProfit+=getBillFinancials(b).knownProfit;
 
 }
 
 });
 
 document.getElementById("dashboard").innerText=
-"Today's Sales ₹"+sales+" | Bills "+count;
+"Today's Sales ₹"+formatMoney(sales)+" | Bills "+count;
 
 }
 
-function viewTodayBills(){
+function getBillFinancials(billRecord){
+
+let subtotal=0;
+let knownCost=0;
+let objectSales=0;
+let knownSales=0;
+
+billRecord.items.forEach(item=>{
+let line=item.rate*item.qty;
+subtotal+=line;
+
+let snap=item.pricingSnapshot;
+
+if(snap && snap.categoryCode==="E"){
+objectSales+=line;
+}else{
+knownSales+=line;
+if(snap && snap.purchaseCostTotal!=null){
+knownCost+=Number(snap.purchaseCostTotal)||0;
+}else{
+let estimated=getPurchaseCostEstimate(item.rate,item.cat);
+if(estimated!=null){
+knownCost+=estimated*item.qty;
+}
+}
+}
+});
+
+let discount=Number(billRecord.discount)||0;
+let finalTotal=billRecord.finalTotal!=null
+?Number(billRecord.finalTotal)
+:Math.max(0,subtotal-discount);
+
+/* Discount is allocated proportionally across the bill for profit analysis. */
+let knownNetSales=knownSales;
+if(subtotal>0){
+knownNetSales=knownSales-(discount*(knownSales/subtotal));
+}
+
+let knownProfit=knownNetSales-knownCost;
+
+return {
+subtotal,
+discount,
+finalTotal,
+knownCost,
+knownSales,
+objectSales,
+knownProfit
+};
+}
+
+function money(value){
+return "₹"+formatMoney(Number(value)||0);
+}
+
+const Records = {
+
+open(){
+this.render();
+},
+
+close(){
+document.getElementById("recordsScreen").style.display="none";
+},
+
+render(){
 
 let bills=JSON.parse(localStorage.getItem("bills")||"[]");
+let screen=document.getElementById("recordsScreen");
 
+if(!bills.length){
+ screen.innerHTML=`<h2>Sales Records</h2><div class="smallBox">No bills recorded yet.</div><button onclick="Records.close()">Close</button>`;
+ screen.style.display="block";
+ return;
+}
+
+let totalRevenue=0;
+let totalKnownProfit=0;
+let totalObjectSales=0;
+let todayRevenue=0;
+let todayKnownProfit=0;
+let todayBills=0;
 let today=new Date().toDateString();
 
-let text="Today's Bills\n\n";
-
-let total=0;
-let count=0;
-
 bills.forEach(b=>{
+let f=getBillFinancials(b);
+totalRevenue+=f.finalTotal;
+totalKnownProfit+=f.knownProfit;
+totalObjectSales+=f.objectSales;
 
-let d=new Date(b.date).toDateString();
-
-if(d===today){
-
-count++;
-
-let billTotal=0;
-
-b.items.forEach(i=>{
-billTotal+=i.rate*i.qty;
+if(new Date(b.date).toDateString()===today){
+ todayBills++;
+ todayRevenue+=f.finalTotal;
+ todayKnownProfit+=f.knownProfit;
+}
 });
 
-billTotal-=b.discount||0;
+let html=`
+<h2>Sales Records</h2>
 
-text+="Bill "+b.billNo+" ₹"+billTotal+"\n";
+<div class="smallBox good">
+<b>Today</b><br>
+Revenue: <b>${money(todayRevenue)}</b><br>
+Known Profit (A–D): <b>${money(todayKnownProfit)}</b><br>
+Bills: ${todayBills}
+</div>
 
-total+=billTotal;
+<div class="smallBox">
+<b>All Records</b><br>
+Revenue: <b>${money(totalRevenue)}</b><br>
+Known Profit (A–D): <b>${money(totalKnownProfit)}</b><br>
+Object Revenue: ${money(totalObjectSales)}<br>
+<small>Object revenue is included in revenue. Object profit is not calculated.</small>
+</div>
+<hr>
+`;
 
-}
+let list=bills.slice().reverse();
 
+list.forEach(b=>{
+let f=getBillFinancials(b);
+let date=new Date(b.date);
+let phone=b.customerPhone ? b.customerPhone : "Not provided";
+
+html+=`<div class="smallBox">
+<b>Bill ${b.billNo}</b><br>
+${date.toLocaleDateString()} • ${date.toLocaleTimeString()}<br>
+Billed to: <b>${phone}</b><br><br>
+`;
+
+html+=`<b>Items</b><br>`;
+
+b.items.forEach(item=>{
+let line=item.rate*item.qty;
+let snap=item.pricingSnapshot || getPricingSnapshot(item);
+
+html+=`${item.cat} [${snap.categoryCode}] — ₹${formatMoney(item.rate)} × ${item.qty} = ${money(line)}<br>`;
 });
 
-text+="\nTotal Today ₹"+total;
-text+="\nBills Count: "+count;
+html+=`<br>
+Gross Transaction: <b>${money(f.subtotal)}</b><br>
+Discount Given: ${money(f.discount)}<br>
+<b>Final Transaction: ${money(f.finalTotal)}</b><br>`;
 
-alert(text);
+html+=`<small>Known Profit (A–D): ${money(f.knownProfit)}${f.objectSales>0 ? " • Object included in revenue" : ""}</small>
+</div>`;
+});
 
+html+=`<button onclick="Records.close()">Close</button>`;
+
+screen.innerHTML=html;
+screen.style.display="block";
 }
+};
 
 function printBill(){
+
+if(!bill.length){
+alert("Add items first.");
+return;
+}
+
+if(!isDiscountAllowed()){
+return;
+}
+
+/* Preserve the bill number that belongs to this bill. */
+let currentBillNo=String(billNo).padStart(4,'0');
 
 saveBill();
 
@@ -572,9 +1245,13 @@ subtotal+=line;
 itemsHTML+=item.cat+" "+item.rate+" x "+item.qty+" = "+line+"<br>";
 });
 
-let discount=Number(document.getElementById("discount").value);
+let discount=Number(document.getElementById("discount").value)||0;
 
 let total=subtotal-discount;
+
+if(document.getElementById("round").checked){
+total=Math.round(total);
+}
 
 let discountLine="";
 
@@ -584,12 +1261,17 @@ discountLine="Subtotal : ₹"+subtotal+"<br>Discount : ₹"+discount+"<br>";
 
 let win=window.open("","","width=300");
 
+if(!win){
+alert("Please allow popups for printing.");
+return;
+}
+
 win.document.write(`
 <h3>HIRA Gifts & General</h3>
 Main Road, Ambad<br>
 Mob: 7020773407<br><br>
 
-Bill No: ${billNo}<br>
+Bill No: ${currentBillNo}<br>
 ${new Date().toLocaleDateString()} • ${new Date().toLocaleTimeString()}<br><br>
 
 ${itemsHTML}
@@ -613,25 +1295,54 @@ win.print();
 
 function exportExcel(){
 
-saveBill();
-
 let bills=JSON.parse(localStorage.getItem("bills")||"[]");
 
-let csv="BillNo,Date,Category,Rate,Qty,Amount\n";
+if(!bills.length){
+alert("No bills recorded yet.");
+return;
+}
+
+let csv="BillNo,Date,CustomerWhatsApp,Category,CategoryCode,Rate,Qty,LineAmount,DiscountAllocated,FinalLineAmount,EstimatedCost,EstimatedProfit\n";
 
 bills.forEach(b=>{
+let f=getBillFinancials(b);
+let subtotal=f.subtotal;
+
 b.items.forEach(i=>{
-let amt=i.rate*i.qty;
-csv+=b.billNo+","+b.date+","+i.cat+","+i.rate+","+i.qty+","+amt+"\n";
+let line=i.rate*i.qty;
+let allocated=subtotal ? (Number(b.discount)||0)*(line/subtotal) : 0;
+let finalLine=line-allocated;
+let snap=i.pricingSnapshot || getPricingSnapshot(i);
+let cost=snap.categoryCode==="E" ? "" : (snap.purchaseCostTotal!=null ? snap.purchaseCostTotal : getPurchaseCostEstimate(i.rate,i.cat)*i.qty);
+let profit=snap.categoryCode==="E" ? "" : (finalLine-Number(cost));
+
+let row=[
+ b.billNo,
+ b.date,
+ b.customerPhone||"",
+ i.cat,
+ snap.categoryCode,
+ i.rate,
+ i.qty,
+ line,
+ allocated,
+ finalLine,
+ cost,
+ profit
+];
+
+csv+=row.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")+"\n";
 });
 });
 
-let blob=new Blob([csv],{type:"text/csv"});
-
+let blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
 let a=document.createElement("a");
 a.href=URL.createObjectURL(blob);
-a.download="juggad_sales.csv";
+a.download="juggad_sales_records.csv";
+document.body.appendChild(a);
 a.click();
+a.remove();
+setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 
 }
 
@@ -655,14 +1366,30 @@ document.getElementById("phonePopup").style.display="none";
 
 function sendWhatsApp(){
 
-saveBill();
+if(!bill.length){
+alert("Add items first.");
+return;
+}
+
+if(!isDiscountAllowed()){
+return;
+}
 
 let phone=document.getElementById("phoneInput").value;
 
-if(!phone) return;
+if(!phone){
+alert("Enter customer WhatsApp number.");
+return;
+}
 
 phone=phone.replace(/\D/g,"");
 
+if(phone.length<10){
+alert("Enter a valid WhatsApp number.");
+return;
+}
+
+saveBill(phone);
 
 let billText="";
 
@@ -681,6 +1408,10 @@ let discount=Number(document.getElementById("discount").value)||0;
 
 let finalTotal=subtotal-discount;
 
+if(document.getElementById("round").checked){
+finalTotal=Math.round(finalTotal);
+}
+
 let totalSection="";
 
 if(discount>0){
@@ -696,7 +1427,7 @@ let message=
 "HIRA Gifts & General\n"+
 "Main Road, Ambad\n"+
 "Mob: 7020773407\n\n"+
-"Bill No: "+billNo+"\n"+
+"Bill No: "+String(billNo-1).padStart(4,'0')+"\n"+
 new Date().toLocaleDateString()+" • "+new Date().toLocaleTimeString()+"\n\n"+
 billText+
 totalSection;
@@ -716,6 +1447,7 @@ billSaved=false;
 
 document.getElementById("discount").value=0;
 document.getElementById("round").checked=false;
+document.getElementById("phoneInput").value="";
 
 renderBill();
 
@@ -730,7 +1462,7 @@ let tagMap = {
   "Stationary": ["@pen","@notebook","@etc"],
   "Home Care": ["@kitchen","@decor","@etc"],
   "Events": ["@birthday","@wedding","@etc"],
-  "Misc": ["@etc"]
+  "Object": ["@etc"]
 };
 
 
@@ -740,7 +1472,7 @@ function openInventory(){
 
 function selectCategory(){
 
-let cat = prompt("Enter Category:\nBag, Gifts, Toys, Events, Cosmetics, Jewellery, Stationary, Home Care, Misc");
+let cat = prompt("Enter Category:\nBag, Gifts, Toys, Events, Cosmetics, Jewellery, Stationary, Home Care, Object");
 
 if(!cat) return;
 
@@ -868,7 +1600,7 @@ localStorage.setItem("tagMap", JSON.stringify({
 "Bag":["@purse","@handpurse","@etc"],
 "Toys":["@push","@puzzle","@rideons","@etc"],
 "Gifts":["@decor","@etc"],
-"Misc":["@etc"]
+"Object":["@etc"]
 }));
 }
 
@@ -962,7 +1694,6 @@ document.getElementById("inventoryScreen").innerHTML=html;
 },
 
 save(){
-
 
 let rate = Number(document.getElementById("invRate").value);
 let qty = Number(document.getElementById("invQty").value)||1;
